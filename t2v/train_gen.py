@@ -4,6 +4,7 @@ import glob
 import json
 import math
 import os
+import signal
 import time
 
 import torch
@@ -73,7 +74,8 @@ def main():
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
     p.add_argument("--log_every", type=int, default=100)
-    p.add_argument("--save_every", type=int, default=2000)
+    p.add_argument("--save_every", type=int, default=1000,
+                   help="checkpoint period; also: kill -USR1 <pid> saves now, Ctrl-C / kill saves and stops")
     p.add_argument("--seed", type=int, default=0)
     a = p.parse_args()
 
@@ -116,6 +118,11 @@ def main():
                     "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
                     "step": step}, a.out)
 
+    flags = {"stop": False, "snapshot": False}
+    signal.signal(signal.SIGINT, lambda *_: flags.update(stop=True))
+    signal.signal(signal.SIGTERM, lambda *_: flags.update(stop=True))
+    signal.signal(signal.SIGUSR1, lambda *_: flags.update(snapshot=True))
+
     t0, run = time.time(), 0.0
     for step in range(1, a.steps + 1):
         idx = torch.randint(0, len(flat), (a.bs,))
@@ -146,8 +153,13 @@ def main():
         run = 0.98 * run + 0.02 * loss.item() if step > 1 else loss.item()
         if step % a.log_every == 0:
             print(f"step {step}  loss {run:.4f}  {step / (time.time() - t0):.1f} it/s", flush=True)
-        if step % a.save_every == 0:
+        if step % a.save_every == 0 or flags["snapshot"]:
             save(step)
+            flags["snapshot"] = False
+        if flags["stop"]:
+            save(step)
+            print(f"stopped at step {step}, saved {a.out}")
+            return
     save(a.steps)
     print(f"saved {a.out}")
 

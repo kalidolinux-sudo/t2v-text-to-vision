@@ -57,7 +57,8 @@ def main():
             cls = [c for c in classes[i].tolist() if c >= 0]
             xt, yt = data.subset(cls, train=False)
             t0 = time.time()
-            flats = generate_flat(gen, tok, cls, n=a.samples, steps=a.steps, emb=class_emb[cls])
+            flats = generate_flat(gen, tok, cls, n=a.samples, steps=a.steps, emb=class_emb[cls],
+                                  prior_emb=zs_emb[cls], arch=arch)
             gen_time += time.time() - t0
             accs = [accuracy(target.load_flat(net, f), xt, yt, k=len(cls)) for f in flats]
             sel = None
