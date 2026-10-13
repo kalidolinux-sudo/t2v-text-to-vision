@@ -58,6 +58,7 @@ def main():
     p.add_argument("--denoiser", default="conv", choices=["conv", "mlp"])
     p.add_argument("--mlp_hidden", type=int, default=512)
     p.add_argument("--mlp_depth", type=int, default=3)
+    p.add_argument("--pred", default="x0", choices=["x0", "eps"], help="denoiser target (x0 = Tina/G.pt signal prediction)")
     p.add_argument("--steps", type=int, default=20000)
     p.add_argument("--bs", type=int, default=32)
     p.add_argument("--tokens_per_step", type=int, default=8192, help="tokens denoised per step (memory knob)")
@@ -80,10 +81,11 @@ def main():
     spec = target.param_spec(target.build(meta["arch"]))
     tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec), meta["max_classes"]).to(dev)
     class_emb = embed_names(meta["names"], dev)
+    clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
                        a.backbone, a.backbone_layers, a.cond_layers,
                        channels=[int(c) for c in a.channels.split(",")], denoiser=a.denoiser,
-                       mlp_hidden=a.mlp_hidden, mlp_depth=a.mlp_depth).to(dev)
+                       mlp_hidden=a.mlp_hidden, mlp_depth=a.mlp_depth, pred=a.pred, clip=round(clip, 3)).to(dev)
     n_gen = sum(p.numel() for p in gen.parameters())
     print(f"tokens per model: {tok.num_tokens} x {a.token_size}; generator: {n_gen / 1e6:.1f}M params")
 
