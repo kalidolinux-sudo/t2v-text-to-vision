@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end check of the whole pipeline at toy scale (CPU is fine, ~10 min). Numbers are meaningless.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.."; export DATA=${DATA:-data}
 Z=runs/smoke/zoo; C=runs/smoke/gen.pt
 python -m t2v.zoo generic --arch tina_cnn --out $Z --epochs 2
 python -m t2v.zoo pmodels --out $Z --split train --n 24 --epochs 1 --min_k 6
