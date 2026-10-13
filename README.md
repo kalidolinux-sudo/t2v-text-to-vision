@@ -60,8 +60,21 @@ The bugs found and the ablations along the way are recorded in `runs/` (git-igno
 | C | B + body weights normalised as a deviation from the zoo's mean model | 68.5% | 43.2% |
 | D | B + CLIP prompt ensembling + class-embedding noise (σ=0.02) | 72.6% | 49.5% |
 | **F** | **D + EMA (0.999) + cosine LR decay** | **72.4%** | **49.9%** |
+| G | F on a 3× larger zoo (3,000 tasks), 10k steps | 72.6% | 48.6% |
 
 On fully unseen classes: B 33.0% → D 35.4% → F 36.7%.
+
+G is no better than F (34.4% on fully unseen classes). More tasks built from the same 80 classes add no
+new vocabulary. Generalising to new classes needs **more distinct classes** (for example ImageNet-1k
+on MI300X), not more combinations of the old ones. The number of sampling steps barely matters: 20
+DDIM steps match 100 (49.8% vs 50.0%) and take **0.06 s per model**.
+
+**End-to-end check.** The request "أبي نموذج يميز بين التفاح والبرتقال والدراجات والقروش" goes through
+DeepSeek-V4-Flash on TokenFactory and becomes `apples, oranges, bicycles, sharks`. The generated model
+(ONNX, valid) scores **85.0%** on the 400 real CIFAR-100 test images of those classes; chance is 25%.
+
+The best generator (run F) is included as `checkpoints/t2v_tinacnn_cifar100.pt` (30 MB), so
+`python app.py` works straight after cloning.
 
 With ε-prediction, the first DDIM step divides by √ᾱ_T ≈ 5·10⁻⁵ and the generated weights blow up
 by about 800×. The sampler now clips the x₀ estimate to the zoo's normalised range and uses

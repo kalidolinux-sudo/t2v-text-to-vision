@@ -15,7 +15,7 @@ import requests
 SYSTEM = (
     "You convert a request for an image classifier into the classes it must recognise. "
     "Reply with JSON only, no prose: {\"classes\": [\"...\"], \"task\": \"one short sentence\"}. "
-    "Rules: between 2 and {k} classes; each class is a short English noun phrase (1-3 words) naming "
+    "Rules: between 2 and {k} classes; each class is a short singular English noun phrase (1-3 words) naming "
     "something visually recognisable in a photo; class names are ALWAYS written in English, even when the request is in Arabic or another language; "
     "no duplicates; keep the user's order when they list classes."
 )

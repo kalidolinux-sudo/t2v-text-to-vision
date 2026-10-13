@@ -19,7 +19,7 @@ from t2v.zoo import pick_device
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--ckpt", default="ckpt/generator.pt")
+    p.add_argument("--ckpt", default="checkpoints/t2v_tinacnn_cifar100.pt")
     p.add_argument("--device", default="auto")
     p.add_argument("--share", action="store_true")
     p.add_argument("--port", type=int, default=7860)
@@ -68,7 +68,7 @@ def main():
         with gr.Row():
             class_box = gr.Textbox(label="Classes (editable, comma-separated, max %d)" % tok.K)
             parse_info = gr.Markdown()
-        steps = gr.Slider(10, 200, value=100, step=10, label="Diffusion steps")
+        steps = gr.Slider(10, 200, value=20, step=10, label="Diffusion steps")
         make = gr.Button("2 · Generate model", variant="primary")
         result = gr.Markdown()
         files = gr.Files(label="Download")
