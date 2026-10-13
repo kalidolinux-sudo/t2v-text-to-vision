@@ -1,0 +1,11 @@
+# On AMD Developer Cloud the ROCm build of PyTorch is usually preinstalled.
+# Otherwise: pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm6.4
+torch>=2.4
+transformers>=4.44
+huggingface_hub
+pyarrow
+pillow
+numpy
+requests
+gradio>=4.0
+onnx

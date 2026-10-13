@@ -1,0 +1,9 @@
+data/
+zoo/
+ckpt/
+runs/
+out/
+__pycache__/
+*.pt
+*.onnx
+.env
