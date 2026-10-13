@@ -21,12 +21,13 @@ def load_generator(path, device):
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, **cfg).to(device)
     gen.load_state_dict(ck["generator"])
     gen.prompt_ensemble = ck.get("prompt_ensemble", False)
+    gen.arch = ck["arch"]
     gen.eval()
     return gen, tok, ck
 
 
 @torch.no_grad()
-def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None):
+def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None):
     """Weights for `n` models classifying `class_names` (in order). Returns (n, P) flat vectors."""
     K = tok.K
     if len(class_names) > K:
@@ -39,7 +40,13 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None):
     mask = torch.zeros(n, K, dtype=torch.bool, device=dev)
     mask[:, :len(class_names)] = True
     tokens = gen.sample(full, mask, steps=steps)
-    return tok.decode(tokens, num_classes=len(class_names))
+    flat = tok.decode(tokens, num_classes=len(class_names))
+    arch = arch or getattr(gen, "arch", None)
+    if arch and target.has_prior(arch):
+        if prior_emb is None:
+            prior_emb = embed_names(class_names, dev, ensemble=True)
+        flat = target.add_head_prior(arch, flat, prior_emb)
+    return flat
 
 
 class Generated(torch.nn.Module):

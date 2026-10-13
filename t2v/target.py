@@ -69,6 +69,7 @@ class ClipHead(nn.Module):
 
 ARCHS = {
     "clip_head": lambda k: ClipHead(k),                                   # ~5.1K params on frozen CLIP
+    "clip_zs": lambda k: ClipHead(k),                                     # same, generated as a residual on CLIP zero-shot
     "tina_cnn": lambda k: TinaCNN(k),                                     # ~5.4K params
     "resnet20": lambda k: ResNet((16, 32, 64), (3, 3, 3), k),             # ~0.27M params
     "resnet18": lambda k: ResNet((64, 128, 256, 512), (2, 2, 2, 2), k),   # ~11M params
@@ -76,7 +77,34 @@ ARCHS = {
 
 
 def uses_features(arch):
-    return arch == "clip_head"
+    return arch in ("clip_head", "clip_zs")
+
+
+ZS_SCALE = 50.0  # zero-shot head = ZS_SCALE * text embedding (logits = scaled cosine similarity)
+
+
+def has_prior(arch):
+    return arch == "clip_zs"
+
+
+def add_head_prior(arch, flat, text_emb, sign=1.0):
+    """For `clip_zs`, the generator works on W - ZS_SCALE * T: a correction to CLIP's zero-shot head.
+    Adds (sign=+1) or removes (sign=-1) the zero-shot rows for the k classes in `text_emb` (k, 512).
+    An unseen class whose correction comes out near zero falls back to plain CLIP zero-shot."""
+    if not has_prior(arch):
+        return flat
+    spec = param_spec(build(arch))
+    o, offs = 0, {}
+    for name, shape in spec:
+        offs[name] = (o, shape)
+        o += int(torch.Size(shape).numel())
+    w0, (K, feat) = offs[HEAD[0]]
+    k = text_emb.shape[0]
+    flat = flat.clone()
+    rows = flat[..., w0:w0 + K * feat].view(*flat.shape[:-1], K, feat)
+    rows[..., :k, :] += sign * ZS_SCALE * text_emb.to(flat.device, flat.dtype)
+    flat[..., w0:w0 + K * feat] = rows.reshape(*flat.shape[:-1], K * feat)
+    return flat
 
 
 def build(arch, num_classes=MAX_CLASSES):

@@ -83,16 +83,20 @@ def cmd_generic(a):
     print(f"generic {a.arch}: {acc:.3f} test acc on {len(seen)} seen classes, {time.time() - t0:.0f}s")
 
 
-def personalise(generic_state, arch, classes, dev):
-    """10-way model initialised from the generic one; head rows copied for the task's classes."""
+def personalise(generic_state, arch, classes, dev, text_emb=None):
+    """10-way model initialised from the generic one; head rows copied for the task's classes
+    (for `clip_zs`: initialised from CLIP's zero-shot head instead)."""
     m = target.build(arch).to(dev)
     body = {k: v for k, v in generic_state.items() if not k.startswith("fc.")}
     m.load_state_dict(body, strict=False)
     with torch.no_grad():
         m.fc.weight.zero_()
         m.fc.bias.zero_()
-        m.fc.weight[:len(classes)] = generic_state["fc.weight"][classes]
-        m.fc.bias[:len(classes)] = generic_state["fc.bias"][classes]
+        if target.has_prior(arch):
+            m.fc.weight[:len(classes)] = target.ZS_SCALE * text_emb[classes]
+        else:
+            m.fc.weight[:len(classes)] = generic_state["fc.weight"][classes]
+            m.fc.bias[:len(classes)] = generic_state["fc.bias"][classes]
     return m
 
 
@@ -104,6 +108,10 @@ def cmd_pmodels(a):
     arch, K = g["arch"], meta["max_classes"]
     data = Cifar100(a.data, dev, features=target.uses_features(arch))
     seen, holdout = meta["seen"], meta["holdout"]
+    text_emb = None
+    if target.has_prior(arch):
+        from .text_embed import embed_names
+        text_emb = embed_names(meta["names"], dev, ensemble=True)
 
     # Tasks are a pure function of (split, seed, index), so shards never overlap and reruns resume.
     rng = random.Random(f"{a.split}-{a.seed}")
@@ -130,14 +138,17 @@ def cmd_pmodels(a):
     for n, i in enumerate(mine):
         torch.manual_seed(a.seed * 1_000_003 + ["train", "eval_seen", "eval_unseen", "eval_novel"].index(a.split) * 100_003 + i)
         classes = tasks[i]
-        m = personalise(g["state"], arch, classes, dev)
+        m = personalise(g["state"], arch, classes, dev, text_emb)
         if a.finetune == "head":
             for name, p in m.named_parameters():
                 p.requires_grad_(name.startswith("fc."))
         x, y = data.subset(classes)
         train(m, x, y, a.epochs, a.lr, a.bs, k=len(classes), wd=a.wd)
         xt, yt = data.subset(classes, train=False)
-        done["flat"].append(target.flatten(m).half() if a.fp16 else target.flatten(m))
+        flat = target.flatten(m)
+        if text_emb is not None:  # store the correction to the zero-shot head, not the raw head
+            flat = target.add_head_prior(arch, flat, text_emb[classes].cpu(), sign=-1.0)
+        done["flat"].append(flat.half() if a.fp16 else flat)
         done["classes"].append(classes + [-1] * (K - len(classes)))
         done["acc"].append(accuracy(m, xt, yt, k=len(classes)))
         done["index"].append(i)
