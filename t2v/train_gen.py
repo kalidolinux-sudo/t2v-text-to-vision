@@ -58,6 +58,7 @@ def main():
     p.add_argument("--denoiser", default="conv", choices=["conv", "mlp"])
     p.add_argument("--mlp_hidden", type=int, default=512)
     p.add_argument("--mlp_depth", type=int, default=3)
+    p.add_argument("--norm", default="tensor", choices=["tensor", "element"], help="body weight normalisation")
     p.add_argument("--pred", default="x0", choices=["x0", "eps"], help="denoiser target (x0 = Tina/G.pt signal prediction)")
     p.add_argument("--steps", type=int, default=20000)
     p.add_argument("--bs", type=int, default=32)
@@ -79,7 +80,7 @@ def main():
     print(f"zoo: {len(flat)} p-models x {flat.shape[1]:,} params (mean acc {accs.mean():.3f})")
 
     spec = target.param_spec(target.build(meta["arch"]))
-    tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec), meta["max_classes"]).to(dev)
+    tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
     class_emb = embed_names(meta["names"], dev)
     clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,

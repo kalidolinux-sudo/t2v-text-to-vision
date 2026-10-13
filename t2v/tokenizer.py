@@ -23,10 +23,15 @@ class ParamTokenizer:
 
         idx, mean, std, layer_ids, intra_ids, slots = [], [], [], [], [], []
 
+        elem_mean = stats.get("__elem_mean__")  # per-element zoo mean for body weights (norm="element")
+
         def add(positions, name, layer, intra, slot):
             pad = token_size - len(positions)
             idx.append(torch.cat([positions, torch.full((pad,), -1, dtype=torch.long)]))
-            mean.append(torch.full((token_size,), stats[name][0]))
+            if elem_mean is not None and slot < 0:
+                mean.append(torch.cat([elem_mean[positions].float(), torch.zeros(pad)]))
+            else:
+                mean.append(torch.full((token_size,), stats[name][0]))
             std.append(torch.full((token_size,), stats[name][1]))
             layer_ids.append(layer), intra_ids.append(intra), slots.append(slot)
 
@@ -58,12 +63,22 @@ class ParamTokenizer:
         self.num_tokens = len(slots)
 
     @staticmethod
-    def compute_stats(flat, spec, eps=1e-6):
+    def compute_stats(flat, spec, norm="tensor", eps=1e-6):
+        """norm="tensor": one mean/std per tensor (RPG). norm="element": body weights are expressed as a
+        deviation from the zoo's mean model (scaled per tensor), so the generator spends its capacity on
+        what differs between tasks; the classifier keeps per-tensor stats because its rows follow the
+        classes, not fixed positions."""
         stats, o = {}, 0
+        mean_model = flat.float().mean(0)
+        if norm == "element":
+            stats["__elem_mean__"] = mean_model
         for name, shape in spec:
             n = int(torch.Size(shape).numel())
             t = flat[:, o:o + n].float()
-            stats[name] = (t.mean().item(), max(t.std().item(), eps))
+            if norm == "element" and name not in HEAD:
+                stats[name] = (0.0, max((t - mean_model[o:o + n]).std().item(), eps))
+            else:
+                stats[name] = (t.mean().item(), max(t.std().item(), eps))
             o += n
         return stats
 
