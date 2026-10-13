@@ -18,7 +18,7 @@ import torch
 import torch.nn.functional as F
 
 from . import target
-from .data import Cifar100, augment, normalize, sample_task, split_classes
+from .data import Cifar100, prep, sample_task, split_classes
 
 
 def pick_device(name="auto"):
@@ -37,7 +37,7 @@ def train(model, x_u8, y, epochs, lr, bs, k=None, wd=5e-4):
         perm = torch.randperm(len(y), device=y.device)
         for i in range(0, len(y), bs):
             idx = perm[i:i + bs]
-            logits = model(augment(normalize(x_u8[idx])))
+            logits = model(prep(x_u8[idx], train=True))
             if k is not None:
                 logits = logits[:, :k]  # padded class slots never receive gradient
             loss = F.cross_entropy(logits, y[idx])
@@ -54,7 +54,7 @@ def accuracy(model, x_u8, y, k=None, bs=2000):
     model.eval()
     correct = 0
     for i in range(0, len(y), bs):
-        logits = model(normalize(x_u8[i:i + bs]))
+        logits = model(prep(x_u8[i:i + bs]))
         if k is not None:
             logits = logits[:, :k]
         correct += (logits.argmax(1) == y[i:i + bs]).sum().item()
@@ -64,13 +64,13 @@ def accuracy(model, x_u8, y, k=None, bs=2000):
 def cmd_generic(a):
     dev = pick_device(a.device)
     torch.manual_seed(a.seed)
-    data = Cifar100(a.data, dev)
+    data = Cifar100(a.data, dev, features=target.uses_features(a.arch))
     seen, holdout = split_classes(a.num_holdout, a.seed)
     x, y = data.subset(seen)
     y = torch.tensor(seen, device=dev)[y]  # keep original 0..99 labels for the 100-way head
     model = target.build(a.arch, 100).to(dev)
     t0 = time.time()
-    train(model, x, y, a.epochs, a.lr, a.bs)
+    train(model, x, y, a.epochs, a.lr, a.bs, wd=a.wd)
     xt, yt = data.subset(seen, train=False)
     acc = accuracy(model, xt, torch.tensor(seen, device=dev)[yt])
     os.makedirs(a.out, exist_ok=True)
@@ -102,7 +102,7 @@ def cmd_pmodels(a):
         meta = json.load(f)
     g = torch.load(os.path.join(a.out, "generic.pt"), map_location=dev)
     arch, K = g["arch"], meta["max_classes"]
-    data = Cifar100(a.data, dev)
+    data = Cifar100(a.data, dev, features=target.uses_features(arch))
     seen, holdout = meta["seen"], meta["holdout"]
 
     # Tasks are a pure function of (split, seed, index), so shards never overlap and reruns resume.
@@ -135,7 +135,7 @@ def cmd_pmodels(a):
             for name, p in m.named_parameters():
                 p.requires_grad_(name.startswith("fc."))
         x, y = data.subset(classes)
-        train(m, x, y, a.epochs, a.lr, a.bs, k=len(classes))
+        train(m, x, y, a.epochs, a.lr, a.bs, k=len(classes), wd=a.wd)
         xt, yt = data.subset(classes, train=False)
         done["flat"].append(target.flatten(m).half() if a.fp16 else target.flatten(m))
         done["classes"].append(classes + [-1] * (K - len(classes)))
@@ -162,6 +162,7 @@ def main():
     g.add_argument("--num_holdout", type=int, default=20, help="classes never used by the zoo")
     g.add_argument("--epochs", type=int, default=50)
     g.add_argument("--lr", type=float, default=0.1)
+    g.add_argument("--wd", type=float, default=5e-4)
     m = sub.choices["pmodels"]
     m.add_argument("--split", default="train", choices=["train", "eval_seen", "eval_unseen", "eval_novel"])
     m.add_argument("--n", type=int, default=1000, help="number of tasks for this split")
@@ -170,6 +171,7 @@ def main():
     m.add_argument("--unseen_frac", type=float, default=0.5, help="eval_unseen: fraction of held-out classes per task")
     m.add_argument("--epochs", type=int, default=10)
     m.add_argument("--lr", type=float, default=0.01)
+    m.add_argument("--wd", type=float, default=5e-4)
     m.add_argument("--finetune", default="all", choices=["all", "head"])
     m.add_argument("--fp16", action="store_true", help="store p-models in fp16 (halves zoo size)")
     m.add_argument("--shard", type=int, default=0)
