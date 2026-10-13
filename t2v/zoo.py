@@ -109,8 +109,8 @@ def cmd_pmodels(a):
     rng = random.Random(f"{a.split}-{a.seed}")
     tasks = []
     for _ in range(a.n):
-        if a.split == "eval_unseen":
-            n_new = max(1, round(a.unseen_frac * K))
+        if a.split in ("eval_unseen", "eval_novel"):  # eval_novel: every class held out (Tina's 100% unseen)
+            n_new = K if a.split == "eval_novel" else max(1, round(a.unseen_frac * K))
             t = rng.sample(holdout, n_new) + rng.sample(seen, K - n_new)
             rng.shuffle(t)
         else:
@@ -128,7 +128,7 @@ def cmd_pmodels(a):
     print(f"{a.split} shard {a.shard}: {len(mine)} p-models to train ({len(have)} already done)")
     t0 = time.time()
     for n, i in enumerate(mine):
-        torch.manual_seed(a.seed * 1_000_003 + ["train", "eval_seen", "eval_unseen"].index(a.split) * 100_003 + i)
+        torch.manual_seed(a.seed * 1_000_003 + ["train", "eval_seen", "eval_unseen", "eval_novel"].index(a.split) * 100_003 + i)
         classes = tasks[i]
         m = personalise(g["state"], arch, classes, dev)
         if a.finetune == "head":
@@ -163,7 +163,7 @@ def main():
     g.add_argument("--epochs", type=int, default=50)
     g.add_argument("--lr", type=float, default=0.1)
     m = sub.choices["pmodels"]
-    m.add_argument("--split", default="train", choices=["train", "eval_seen", "eval_unseen"])
+    m.add_argument("--split", default="train", choices=["train", "eval_seen", "eval_unseen", "eval_novel"])
     m.add_argument("--n", type=int, default=1000, help="number of tasks for this split")
     m.add_argument("--n_train_ref", type=int, default=1000, help="train-split size, to exclude its tasks from eval_seen")
     m.add_argument("--min_k", type=int, default=10, help="smallest class count per task (Tina pads to 10)")
