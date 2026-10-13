@@ -44,9 +44,9 @@ classes are never seen by the zoo. Each test set has 59 or 60 tasks the zoo neve
 
 | Test tasks | **T2V generated** | Oracle (fine-tuned on the task) | Classifier selection | Chance |
 |---|---|---|---|---|
-| New combinations of seen classes | **72.6%** | 73.8% | 72.9% | 20.5% |
-| Half of the classes never seen | **48.3%** | 63.8% | n/a | 10.0% |
-| All classes never seen (Tina's setting) | **33.0%** | 64.3% | n/a | 10.0% |
+| New combinations of seen classes | **72.4%** | 73.8% | 72.9% | 20.5% |
+| Half of the classes never seen | **49.9%** | 63.8% | n/a | 10.0% |
+| All classes never seen (Tina's setting) | **36.7%** | 64.3% | n/a | 10.0% |
 
 Tina reports 30.9% for 100% unseen classes on CIFAR-100. Generating a model takes **0.09 s** on a
 laptop-class CPU.
@@ -58,6 +58,10 @@ The bugs found and the ablations along the way are recorded in `runs/` (git-igno
 | A | ε-prediction | 51.4% | 32.5% |
 | **B** | **x₀-prediction (Tina/G.pt signal prediction)** | **72.6%** | **48.3%** |
 | C | B + body weights normalised as a deviation from the zoo's mean model | 68.5% | 43.2% |
+| D | B + CLIP prompt ensembling + class-embedding noise (σ=0.02) | 72.6% | 49.5% |
+| **F** | **D + EMA (0.999) + cosine LR decay** | **72.4%** | **49.9%** |
+
+On fully unseen classes: B 33.0% → D 35.4% → F 36.7%.
 
 With ε-prediction, the first DDIM step divides by √ᾱ_T ≈ 5·10⁻⁵ and the generated weights blow up
 by about 800×. The sampler now clips the x₀ estimate to the zoo's normalised range and uses
