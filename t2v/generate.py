@@ -17,7 +17,8 @@ from .zoo import pick_device
 def load_generator(path, device):
     ck = torch.load(path, map_location=device)
     tok = ParamTokenizer.from_state(ck["tokenizer"]).to(device)
-    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, **ck["config"]).to(device)
+    cfg = {"pred": "eps", "clip": 3.0, **ck["config"]}  # defaults for checkpoints saved before these options
+    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, **cfg).to(device)
     gen.load_state_dict(ck["generator"])
     gen.eval()
     return gen, tok, ck

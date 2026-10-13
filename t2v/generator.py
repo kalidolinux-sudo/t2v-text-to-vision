@@ -154,12 +154,12 @@ def cosine_alpha_bar(steps, s=0.008):
 class T2VGenerator(nn.Module):
     def __init__(self, layer_ids, intra_ids, slots, token_size, clip_dim=512, d_model=512, backbone="lstm",
                  backbone_layers=2, cond_layers=2, heads=8, channels=(64, 128, 256), diffusion_steps=1000,
-                 denoiser="conv", mlp_hidden=512, mlp_depth=3):
+                 denoiser="conv", mlp_hidden=512, mlp_depth=3, pred="x0", clip=None):
         super().__init__()
         self.config = dict(token_size=token_size, clip_dim=clip_dim, d_model=d_model, backbone=backbone,
                            backbone_layers=backbone_layers, cond_layers=cond_layers, heads=heads,
                            channels=tuple(channels), diffusion_steps=diffusion_steps, denoiser=denoiser,
-                           mlp_hidden=mlp_hidden, mlp_depth=mlp_depth)
+                           mlp_hidden=mlp_hidden, mlp_depth=mlp_depth, pred=pred, clip=clip)
         self.register_buffer("slots", slots.clone(), persistent=False)
         half = d_model // 2
         self.register_buffer("pos", torch.cat([sincos(layer_ids, half), sincos(intra_ids, half)], -1), persistent=False)
@@ -197,11 +197,15 @@ class T2VGenerator(nn.Module):
         ab = self.alpha_bar[step][:, None]
         noise = torch.randn_like(x)
         pred = self.denoiser(ab.sqrt() * x + (1 - ab).sqrt() * noise, step, p)
-        return (((pred.float() - noise) ** 2) * vm).sum() / vm.sum()
+        target = x if self.config["pred"] == "x0" else noise
+        return (((pred.float() - target) ** 2) * vm).sum() / vm.sum()
 
     @torch.no_grad()
-    def sample(self, emb, cls_mask, steps=100, chunk=4096, clip=None):
-        """DDIM (eta=0). Returns (B, T, D) normalised tokens."""
+    def sample(self, emb, cls_mask, steps=100, chunk=4096, clip="auto"):
+        """DDIM (eta=0). Returns (B, T, D) normalised tokens. `clip` bounds the x0 estimate; "auto" uses
+        the largest normalised value seen in the zoo (without it, eps-prediction diverges at t~T)."""
+        if clip == "auto":
+            clip = self.config.get("clip")
         proto = self.prototypes(emb, cls_mask)
         B, T, d = proto.shape
         p = proto.reshape(B * T, d)
@@ -210,10 +214,14 @@ class T2VGenerator(nn.Module):
         for i, t in enumerate(ts):
             ab = self.alpha_bar[t]
             ab_prev = self.alpha_bar[ts[i + 1]] if i + 1 < len(ts) else torch.ones((), device=p.device)
-            eps = torch.cat([self.denoiser(x[j:j + chunk], t.expand(len(x[j:j + chunk])), p[j:j + chunk]).float()
+            out = torch.cat([self.denoiser(x[j:j + chunk], t.expand(len(x[j:j + chunk])), p[j:j + chunk]).float()
                              for j in range(0, len(x), chunk)])
-            x0 = (x - (1 - ab).sqrt() * eps) / ab.sqrt()
+            if self.config.get("pred", "eps") == "x0":
+                x0 = out
+            else:
+                x0 = (x - (1 - ab).sqrt() * out) / ab.sqrt()
             if clip is not None:
                 x0 = x0.clamp(-clip, clip)
+            eps = (x - ab.sqrt() * x0) / (1 - ab).sqrt()
             x = ab_prev.sqrt() * x0 + (1 - ab_prev).sqrt() * eps
         return x.view(B, T, -1)
