@@ -25,7 +25,7 @@ def main():
     p.add_argument("--ckpt", default="ckpt/generator.pt")
     p.add_argument("--zoo", default="zoo")
     p.add_argument("--data", default="data")
-    p.add_argument("--splits", default="eval_seen,eval_unseen")
+    p.add_argument("--splits", default="eval_seen,eval_unseen,eval_novel")
     p.add_argument("--max_tasks", type=int, default=100)
     p.add_argument("--samples", type=int, default=5, help="generated models per task")
     p.add_argument("--steps", type=int, default=100)
@@ -41,7 +41,7 @@ def main():
     generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
     with open(os.path.join(a.zoo, "meta.json")) as f:
         seen = set(json.load(f)["seen"])
-    class_emb = embed_names(ck["names"], dev)
+    class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False))
     net = target.build(arch).to(dev)
 
     report = {}

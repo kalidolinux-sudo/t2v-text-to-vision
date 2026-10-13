@@ -66,6 +66,8 @@ def main():
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--warmup", type=int, default=500)
     p.add_argument("--no_perm_aug", action="store_true")
+    p.add_argument("--prompt_ensemble", action="store_true", help="average CLIP embeddings over several templates")
+    p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
     p.add_argument("--log_every", type=int, default=100)
     p.add_argument("--save_every", type=int, default=2000)
@@ -81,7 +83,7 @@ def main():
 
     spec = target.param_spec(target.build(meta["arch"]))
     tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
-    class_emb = embed_names(meta["names"], dev)
+    class_emb = embed_names(meta["names"], dev, ensemble=a.prompt_ensemble)
     clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
                        a.backbone, a.backbone_layers, a.cond_layers,
@@ -97,7 +99,8 @@ def main():
 
     def save(step):
         torch.save({"generator": gen.state_dict(), "config": gen.config, "tokenizer": tok.state(),
-                    "arch": meta["arch"], "names": meta["names"], "step": step}, a.out)
+                    "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
+                    "step": step}, a.out)
 
     t0, run = time.time(), 0.0
     for step in range(1, a.steps + 1):
@@ -108,6 +111,8 @@ def main():
         if not a.no_perm_aug:
             x0, cls = permute_classes(x0, cls, k, tok.head_pos)
         emb, mask, k = class_batch(class_emb, cls)
+        if a.emb_noise > 0:
+            emb = torch.nn.functional.normalize(emb + a.emb_noise * torch.randn_like(emb), dim=-1)
         row_valid = (tok.slots[None] < 0) | (tok.slots[None] < k[:, None])
         with torch.autocast(device_type="cuda" if dev.startswith("cuda") else "cpu", dtype=torch.bfloat16,
                             enabled=a.bf16):

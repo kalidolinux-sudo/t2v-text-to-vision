@@ -20,6 +20,7 @@ def load_generator(path, device):
     cfg = {"pred": "eps", "clip": 3.0, **ck["config"]}  # defaults for checkpoints saved before these options
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, **cfg).to(device)
     gen.load_state_dict(ck["generator"])
+    gen.prompt_ensemble = ck.get("prompt_ensemble", False)
     gen.eval()
     return gen, tok, ck
 
@@ -32,7 +33,7 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None):
         raise ValueError(f"at most {K} classes")
     dev = tok.idx.device
     if emb is None:
-        emb = embed_names(class_names, dev)
+        emb = embed_names(class_names, dev, ensemble=getattr(gen, "prompt_ensemble", False))
     full = torch.zeros(n, K, emb.shape[1], device=dev)
     full[:, :len(class_names)] = emb
     mask = torch.zeros(n, K, dtype=torch.bool, device=dev)
