@@ -79,10 +79,10 @@ def export(model, classes, arch, out_dir):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--ckpt", default="ckpt/generator.pt")
+    p.add_argument("--ckpt", default="checkpoints/t2v_tinacnn_cifar100.pt")
     p.add_argument("--prompt", required=True, help="free text in any language, or a comma-separated class list")
     p.add_argument("--out", default="out/generated")
-    p.add_argument("--steps", type=int, default=100)
+    p.add_argument("--steps", type=int, default=20)
     p.add_argument("--device", default="auto")
     a = p.parse_args()
     dev = pick_device(a.device)
