@@ -54,7 +54,10 @@ def main():
     p.add_argument("--backbone", default="lstm", choices=["lstm", "gru", "transformer", "mamba"])
     p.add_argument("--backbone_layers", type=int, default=2)
     p.add_argument("--cond_layers", type=int, default=2)
-    p.add_argument("--channels", default="64,128,256")
+    p.add_argument("--channels", default="64,128,256", help="conv denoiser widths")
+    p.add_argument("--denoiser", default="conv", choices=["conv", "mlp"])
+    p.add_argument("--mlp_hidden", type=int, default=512)
+    p.add_argument("--mlp_depth", type=int, default=3)
     p.add_argument("--steps", type=int, default=20000)
     p.add_argument("--bs", type=int, default=32)
     p.add_argument("--tokens_per_step", type=int, default=8192, help="tokens denoised per step (memory knob)")
@@ -79,7 +82,8 @@ def main():
     class_emb = embed_names(meta["names"], dev)
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
                        a.backbone, a.backbone_layers, a.cond_layers,
-                       channels=[int(c) for c in a.channels.split(",")]).to(dev)
+                       channels=[int(c) for c in a.channels.split(",")], denoiser=a.denoiser,
+                       mlp_hidden=a.mlp_hidden, mlp_depth=a.mlp_depth).to(dev)
     n_gen = sum(p.numel() for p in gen.parameters())
     print(f"tokens per model: {tok.num_tokens} x {a.token_size}; generator: {n_gen / 1e6:.1f}M params")
 

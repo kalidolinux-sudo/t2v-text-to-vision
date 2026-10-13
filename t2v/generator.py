@@ -117,6 +117,32 @@ class ConvDenoiser(nn.Module):
         return self.out(h)[:, 0]
 
 
+class MLPDenoiser(nn.Module):
+    """Residual MLP over one parameter token with FiLM conditioning; much cheaper than the U-Net
+    for small tokens (and on CPU)."""
+
+    def __init__(self, token_size, d, hidden=512, depth=3):
+        super().__init__()
+        self.d = d
+        self.time = nn.Sequential(nn.Linear(d, d), nn.SiLU(), nn.Linear(d, d))
+        self.inp = nn.Linear(token_size, hidden)
+        self.norms = nn.ModuleList([nn.LayerNorm(hidden, elementwise_affine=False) for _ in range(depth)])
+        self.films = nn.ModuleList([nn.Linear(d, 2 * hidden) for _ in range(depth)])
+        self.mlps = nn.ModuleList([nn.Sequential(nn.Linear(hidden, 2 * hidden), nn.SiLU(), nn.Linear(2 * hidden, hidden))
+                                   for _ in range(depth)])
+        self.out = nn.Sequential(nn.LayerNorm(hidden), nn.Linear(hidden, token_size))
+        nn.init.zeros_(self.out[1].weight)
+        nn.init.zeros_(self.out[1].bias)
+
+    def forward(self, x, t, proto):
+        cond = F.silu(proto + self.time(sincos(t, self.d)))
+        h = self.inp(x)
+        for norm, film, mlp in zip(self.norms, self.films, self.mlps):
+            scale, shift = film(cond).chunk(2, -1)
+            h = h + mlp(norm(h) * (1 + scale) + shift)
+        return self.out(h)
+
+
 def cosine_alpha_bar(steps, s=0.008):
     t = torch.linspace(0, steps, steps + 1, dtype=torch.float64)
     f = torch.cos((t / steps + s) / (1 + s) * math.pi / 2) ** 2
@@ -127,11 +153,13 @@ def cosine_alpha_bar(steps, s=0.008):
 
 class T2VGenerator(nn.Module):
     def __init__(self, layer_ids, intra_ids, slots, token_size, clip_dim=512, d_model=512, backbone="lstm",
-                 backbone_layers=2, cond_layers=2, heads=8, channels=(64, 128, 256), diffusion_steps=1000):
+                 backbone_layers=2, cond_layers=2, heads=8, channels=(64, 128, 256), diffusion_steps=1000,
+                 denoiser="conv", mlp_hidden=512, mlp_depth=3):
         super().__init__()
         self.config = dict(token_size=token_size, clip_dim=clip_dim, d_model=d_model, backbone=backbone,
                            backbone_layers=backbone_layers, cond_layers=cond_layers, heads=heads,
-                           channels=tuple(channels), diffusion_steps=diffusion_steps)
+                           channels=tuple(channels), diffusion_steps=diffusion_steps, denoiser=denoiser,
+                           mlp_hidden=mlp_hidden, mlp_depth=mlp_depth)
         self.register_buffer("slots", slots.clone(), persistent=False)
         half = d_model // 2
         self.register_buffer("pos", torch.cat([sincos(layer_ids, half), sincos(intra_ids, half)], -1), persistent=False)
@@ -143,7 +171,8 @@ class T2VGenerator(nn.Module):
         self.xnorm = nn.LayerNorm(d_model)
         self.proto_out = nn.Sequential(nn.LayerNorm(d_model), nn.Linear(d_model, d_model), nn.SiLU(),
                                        nn.Linear(d_model, d_model))
-        self.denoiser = ConvDenoiser(token_size, d_model, channels)
+        self.denoiser = (ConvDenoiser(token_size, d_model, channels) if denoiser == "conv"
+                         else MLPDenoiser(token_size, d_model, mlp_hidden, mlp_depth))
 
     def prototypes(self, emb, cls_mask):
         c = self.cond(emb, cls_mask)                                             # (B, K, d)
