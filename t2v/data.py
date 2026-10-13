@@ -41,9 +41,13 @@ def _load_split(split, cache_dir):
 
 
 class Cifar100:
-    def __init__(self, cache_dir="data", device="cpu"):
+    def __init__(self, cache_dir="data", device="cpu", features=False):
+        """features=True swaps the images for precomputed CLIP image features (see t2v.features)."""
         tr, te = _load_split("train", cache_dir), _load_split("test", cache_dir)
         self.names = tr["names"]
+        if features:
+            tr["x"] = torch.load(os.path.join(cache_dir, "clip_feats_train.pt")).float()
+            te["x"] = torch.load(os.path.join(cache_dir, "clip_feats_test.pt")).float()
         self.train_x, self.train_y = tr["x"].to(device), tr["y"].to(device)
         self.test_x, self.test_y = te["x"].to(device), te["y"].to(device)
         coarse = torch.zeros(100, dtype=torch.long)
@@ -58,6 +62,14 @@ class Cifar100:
         lut = torch.full((100,), -1, dtype=torch.long, device=y.device)
         lut[cls] = torch.arange(len(classes), device=y.device)
         return x[mask], lut[y[mask]]
+
+
+def prep(x, train=False):
+    """Model input: uint8 images are normalised (and augmented when training); features pass through."""
+    if x.dtype != torch.uint8:
+        return x
+    x = normalize(x)
+    return augment(x) if train else x
 
 
 def normalize(x_uint8):

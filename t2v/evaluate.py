@@ -13,7 +13,7 @@ import time
 import torch
 
 from . import target
-from .data import Cifar100, normalize
+from .data import Cifar100, prep
 from .generate import generate_flat, load_generator
 from .text_embed import embed_names
 from .train_gen import load_split
@@ -36,13 +36,14 @@ def main():
     dev = pick_device(a.device)
     gen, tok, ck = load_generator(a.ckpt, dev)
     arch = ck["arch"]
-    data = Cifar100(a.data, dev)
+    data = Cifar100(a.data, dev, features=target.uses_features(arch))
     generic = target.build(arch, 100).to(dev)
     generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
     with open(os.path.join(a.zoo, "meta.json")) as f:
         seen = set(json.load(f)["seen"])
     class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False))
     net = target.build(arch).to(dev)
+    zs_emb = embed_names(ck["names"], dev, ensemble=True)  # CLIP zero-shot uses the prompt ensemble
 
     report = {}
     for split in a.splits.split(","):
@@ -62,9 +63,13 @@ def main():
             sel = None
             if all(c in seen for c in cls):
                 with torch.no_grad():
-                    logits = generic(normalize(xt))[:, cls]
+                    logits = generic(prep(xt))[:, cls]
                 sel = (logits.argmax(1) == yt).float().mean().item()
-            rows.append({"classes": cls, "generated": accs, "oracle": oracle[i].item(), "selection": sel})
+            zs = None
+            if target.uses_features(arch):
+                zs = ((xt @ zs_emb[cls].T).argmax(1) == yt).float().mean().item()
+            rows.append({"classes": cls, "generated": accs, "oracle": oracle[i].item(), "selection": sel,
+                         "clip_zero_shot": zs})
         mean = lambda v: sum(v) / len(v) if v else float("nan")
         summary = {
             "tasks": len(rows),
@@ -72,6 +77,7 @@ def main():
             "generated_best": mean([max(r["generated"]) for r in rows]),
             "oracle": mean([r["oracle"] for r in rows]),
             "selection": mean([r["selection"] for r in rows if r["selection"] is not None]),
+            "clip_zero_shot": mean([r["clip_zero_shot"] for r in rows if r["clip_zero_shot"] is not None]),
             "chance": mean([1 / len(r["classes"]) for r in rows]),
             "seconds_per_model": gen_time / max(1, len(rows) * a.samples),
         }

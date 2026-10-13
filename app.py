@@ -53,9 +53,7 @@ def main():
     def predict(img):
         if "model" not in state:
             raise gr.Error("Generate a model first.")
-        x = np.asarray(Image.fromarray(img).convert("RGB").resize((32, 32), Image.BICUBIC), dtype=np.float32) / 255
-        with torch.no_grad():
-            prob = state["model"](torch.from_numpy(x).permute(2, 0, 1)[None]).softmax(-1)[0]
+        prob = state["model"].predict_image(np.asarray(Image.fromarray(img).convert("RGB")))
         return {c: float(p) for c, p in zip(state["classes"], prob)}
 
     with gr.Blocks(title="T2V · Text to Vision") as demo:

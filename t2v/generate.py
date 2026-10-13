@@ -45,19 +45,35 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None):
 class Generated(torch.nn.Module):
     """Generated network + input normalisation + slicing to the requested classes (for export)."""
 
-    def __init__(self, net, k):
+    def __init__(self, net, k, features=False):
         super().__init__()
         from .data import MEAN, STD
-        self.net, self.k = net, k
+        self.net, self.k, self.features = net, k, features
         self.register_buffer("mean", MEAN.clone())
         self.register_buffer("std", STD.clone())
 
-    def forward(self, x):  # x: float images in [0, 1], (B, 3, 32, 32)
-        return self.net((x - self.mean) / self.std)[:, :self.k]
+    def forward(self, x):
+        # images: float in [0, 1], (B, 3, 32, 32); clip_head: CLIP ViT-B/32 image features, (B, 512)
+        if not self.features:
+            x = (x - self.mean) / self.std
+        return self.net(x)[:, :self.k]
+
+    def predict_image(self, img_uint8):
+        """img_uint8: (H, W, 3) uint8 array of any size -> class probabilities."""
+        x = torch.from_numpy(img_uint8).permute(2, 0, 1)[None]
+        with torch.no_grad():
+            if self.features:
+                from .features import image_features
+                inp = image_features(x)
+            else:
+                inp = torch.nn.functional.interpolate(x.float() / 255, size=(32, 32), mode="bicubic",
+                                                      align_corners=False).clamp(0, 1)
+            return self(inp).softmax(-1)[0]
 
 
 def build_model(arch, flat, k):
-    return Generated(target.load_flat(target.build(arch), flat.cpu()).eval(), k).eval()
+    net = target.load_flat(target.build(arch), flat.cpu()).eval()
+    return Generated(net, k, features=target.uses_features(arch)).eval()
 
 
 def export(model, classes, arch, out_dir):
@@ -68,8 +84,9 @@ def export(model, classes, arch, out_dir):
         json.dump(classes, f, ensure_ascii=False)
     onnx_path = os.path.join(out_dir, "model.onnx")
     try:
-        torch.onnx.export(model, torch.rand(1, 3, 32, 32), onnx_path, input_names=["image"],
-                          output_names=["logits"], dynamic_axes={"image": {0: "batch"}, "logits": {0: "batch"}},
+        dummy, name = (torch.rand(1, 512), "clip_features") if model.features else (torch.rand(1, 3, 32, 32), "image")
+        torch.onnx.export(model, dummy, onnx_path, input_names=[name],
+                          output_names=["logits"], dynamic_axes={name: {0: "batch"}, "logits": {0: "batch"}},
                           dynamo=False)
     except Exception as e:  # ONNX is a convenience; weights.pt is the primary artefact
         print(f"ONNX export skipped: {e}")

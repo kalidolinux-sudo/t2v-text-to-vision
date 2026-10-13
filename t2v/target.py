@@ -56,11 +56,27 @@ class ResNet(nn.Module):
         return self.fc(x.mean((2, 3)))
 
 
+class ClipHead(nn.Module):
+    """Classifier head over frozen CLIP ViT-B/32 image features (Tina's ViT setting)."""
+
+    def __init__(self, num_classes=MAX_CLASSES, dim=512):
+        super().__init__()
+        self.fc = nn.Linear(dim, num_classes)
+
+    def forward(self, feats):
+        return self.fc(feats)
+
+
 ARCHS = {
+    "clip_head": lambda k: ClipHead(k),                                   # ~5.1K params on frozen CLIP
     "tina_cnn": lambda k: TinaCNN(k),                                     # ~5.4K params
     "resnet20": lambda k: ResNet((16, 32, 64), (3, 3, 3), k),             # ~0.27M params
     "resnet18": lambda k: ResNet((64, 128, 256, 512), (2, 2, 2, 2), k),   # ~11M params
 }
+
+
+def uses_features(arch):
+    return arch == "clip_head"
 
 
 def build(arch, num_classes=MAX_CLASSES):
