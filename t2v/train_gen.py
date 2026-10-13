@@ -2,6 +2,7 @@
 import argparse
 import glob
 import json
+import math
 import os
 import time
 
@@ -65,6 +66,8 @@ def main():
     p.add_argument("--tokens_per_step", type=int, default=8192, help="tokens denoised per step (memory knob)")
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--warmup", type=int, default=500)
+    p.add_argument("--cosine", action="store_true", help="cosine-decay the LR to 0 after warmup")
+    p.add_argument("--ema", type=float, default=0.0, help="EMA decay for the saved weights (e.g. 0.999); 0 = off")
     p.add_argument("--no_perm_aug", action="store_true")
     p.add_argument("--prompt_ensemble", action="store_true", help="average CLIP embeddings over several templates")
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
@@ -93,12 +96,23 @@ def main():
     print(f"tokens per model: {tok.num_tokens} x {a.token_size}; generator: {n_gen / 1e6:.1f}M params")
 
     opt = torch.optim.AdamW(gen.parameters(), lr=a.lr, weight_decay=0.0)
-    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / a.warmup))
+    def lr_lambda(s):
+        if s < a.warmup:
+            return (s + 1) / a.warmup
+        if a.cosine:
+            return 0.5 * (1 + math.cos(math.pi * (s - a.warmup) / max(1, a.steps - a.warmup)))
+        return 1.0
+
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
+    ema = None
+    if a.ema > 0:
+        ema = {k: v.detach().clone() for k, v in gen.state_dict().items()}
     flat = flat.pin_memory() if dev.startswith("cuda") else flat
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
 
     def save(step):
-        torch.save({"generator": gen.state_dict(), "config": gen.config, "tokenizer": tok.state(),
+        weights = ema if ema is not None else gen.state_dict()
+        torch.save({"generator": weights, "config": gen.config, "tokenizer": tok.state(),
                     "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
                     "step": step}, a.out)
 
@@ -122,6 +136,13 @@ def main():
         torch.nn.utils.clip_grad_norm_(gen.parameters(), 1.0)
         opt.step()
         sched.step()
+        if ema is not None:
+            with torch.no_grad():
+                for k, v in gen.state_dict().items():
+                    if v.dtype.is_floating_point:
+                        ema[k].lerp_(v, 1 - a.ema)
+                    else:
+                        ema[k].copy_(v)
         run = 0.98 * run + 0.02 * loss.item() if step > 1 else loss.item()
         if step % a.log_every == 0:
             print(f"step {step}  loss {run:.4f}  {step / (time.time() - t0):.1f} it/s", flush=True)
