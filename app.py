@@ -22,6 +22,8 @@ def main():
     p.add_argument("--ckpt", default=os.environ.get("T2V_CKPT", "checkpoints/t2v_tinacnn_cifar100.pt"))
     p.add_argument("--hf_repo", default=os.environ.get("T2V_HF_REPO"),
                    help="Hugging Face model repo to download --ckpt from when it is not on disk (e.g. user/t2v-1k)")
+    p.add_argument("--ckpt_url", default=os.environ.get("T2V_CKPT_URL"),
+                   help="URL to download --ckpt from when it is not on disk (e.g. a GitHub release asset)")
     p.add_argument("--device", default="auto")
     p.add_argument("--share", action="store_true")
     p.add_argument("--port", type=int, default=7860)
@@ -30,6 +32,18 @@ def main():
     if not os.path.exists(a.ckpt) and a.hf_repo:
         from huggingface_hub import hf_hub_download
         a.ckpt = hf_hub_download(a.hf_repo, os.path.basename(a.ckpt))
+    if not os.path.exists(a.ckpt) and a.ckpt_url:  # e.g. a GitHub release asset
+        import requests
+        os.makedirs(os.path.dirname(a.ckpt) or ".", exist_ok=True)
+        print(f"downloading {a.ckpt_url} -> {a.ckpt}")
+        with requests.get(a.ckpt_url, stream=True, timeout=60) as r:
+            r.raise_for_status()
+            with open(a.ckpt, "wb") as f:
+                for chunk in r.iter_content(1 << 20):
+                    f.write(chunk)
+    if not os.path.exists(a.ckpt):
+        raise SystemExit(f"{a.ckpt} not found: download it from the repository's Releases into checkpoints/, "
+                         "or set T2V_CKPT_URL / T2V_HF_REPO")
     gen, tok, ck = load_generator(a.ckpt, dev)
     agent = "AMD TokenFactory" if os.environ.get("TOKENFACTORY_API_KEY") else "offline (no TokenFactory key set)"
     state = {}
