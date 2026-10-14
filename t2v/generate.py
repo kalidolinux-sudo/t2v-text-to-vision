@@ -28,7 +28,8 @@ def load_generator(path, device):
 
 
 @torch.no_grad()
-def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None):
+def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None,
+                  amp=False):
     """Weights for `n` models classifying `class_names` (in order). Returns (n, P) flat vectors.
     For a generator trained with descriptions, each class is described visually before it is embedded:
     `descriptions` (e.g. from the request parser) first, then the training set's, then the LLM."""
@@ -49,7 +50,7 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
     full[:, :len(class_names)] = emb
     mask = torch.zeros(n, K, dtype=torch.bool, device=dev)
     mask[:, :len(class_names)] = True
-    tokens = gen.sample(full, mask, steps=steps)
+    tokens = gen.sample(full, mask, steps=steps, amp=amp)
     flat = tok.decode(tokens, num_classes=len(class_names))
     arch = arch or getattr(gen, "arch", None)
     if arch and target.has_prior(arch):

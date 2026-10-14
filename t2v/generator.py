@@ -257,11 +257,14 @@ class T2VGenerator(nn.Module):
         return err.sum() / vm.sum()
 
     @torch.no_grad()
-    def sample(self, emb, cls_mask, steps=100, chunk=4096, clip="auto"):
+    def sample(self, emb, cls_mask, steps=100, chunk=4096, clip="auto", amp=False):
         """DDIM (eta=0). Returns (B, T, D) normalised tokens. `clip` bounds the x0 estimate; "auto" uses
         the largest normalised value seen in the zoo (without it, eps-prediction diverges at t~T)."""
         if clip == "auto":
             clip = self.config.get("clip")
+        if amp and emb.is_cuda:  # fp16 inference: tensor cores on T4-class GPUs
+            with torch.autocast("cuda", dtype=torch.float16):
+                return self.sample(emb, cls_mask, steps, chunk, clip, amp=False).float()
         joint = self.config.get("joint_layers", 0) > 0
         proto, classes = self.prototypes(emb, cls_mask, return_classes=True)
         B, T, d = proto.shape

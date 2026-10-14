@@ -30,6 +30,7 @@ def main():
     p.add_argument("--samples", type=int, default=5, help="generated models per task")
     p.add_argument("--steps", type=int, default=100)
     p.add_argument("--device", default="auto")
+    p.add_argument("--fp16", action="store_true", help="fp16 sampling on GPU")
     p.add_argument("--out", default="runs/eval.json")
     a = p.parse_args()
 
@@ -59,7 +60,9 @@ def main():
             xt, yt = data.subset(cls, train=False)
             t0 = time.time()
             flats = generate_flat(gen, tok, cls, n=a.samples, steps=a.steps, emb=class_emb[cls],
-                                  prior_emb=zs_emb[cls], arch=arch)
+                                  prior_emb=zs_emb[cls], arch=arch, amp=a.fp16)
+            if dev.startswith("cuda"):
+                torch.cuda.synchronize()
             gen_time += time.time() - t0
             accs = [accuracy(target.load_flat(net, f), xt, yt, k=len(cls)) for f in flats]
             sel = None
