@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use T2V, please cite it as below."
+title: "T2V · Text to Vision: generating vision classifiers from text"
+type: software
+authors:
+  - name: "T2V · Text to Vision authors"
+repository-code: "https://github.com/kalidolinux-sudo/t2v-text-to-vision"
+license: MIT
+version: "1.0.0"
+date-released: "2026-10-14"
+keywords: [parameter generation, diffusion, text-to-model, zero-shot classification, AMD]

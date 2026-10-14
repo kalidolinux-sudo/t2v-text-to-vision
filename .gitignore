@@ -1,4 +1,3 @@
-data/
 zoo/
 ckpt/
 runs/
@@ -7,3 +6,7 @@ __pycache__/
 *.pt
 *.onnx
 .env
+
+.pytest_cache/
+*.egg-info/
+checkpoints/*.part

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "t2v-text-to-vision"
+version = "1.0.0"
+description = "Generate the weights of a vision classifier directly from text (Tina x RPG parameter diffusion + an LLM agent on AMD TokenFactory)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.4",
+  "transformers>=4.44",
+  "huggingface_hub",
+  "pyarrow",
+  "pillow",
+  "numpy",
+  "requests",
+]
+
+[project.optional-dependencies]
+app = ["gradio>=4.0", "onnx"]
+dev = ["pytest"]
+
+[project.urls]
+Repository = "https://github.com/kalidolinux-sudo/t2v-text-to-vision"
+Model = "https://github.com/kalidolinux-sudo/t2v-text-to-vision/releases/tag/1.0"
+
+[tool.setuptools]
+packages = ["t2v"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning"]

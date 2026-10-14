@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="520" rx="18" fill="#ffffff"/>
+
+  <!-- request -->
+  <rect x="30" y="150" width="180" height="120" rx="12" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="120" y="185" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">Request</text>
+  <text x="120" y="210" text-anchor="middle" font-size="13" fill="#334155">any language</text>
+  <text x="120" y="240" text-anchor="middle" font-size="12" fill="#475569" font-style="italic">"koala, banjo,</text>
+  <text x="120" y="256" text-anchor="middle" font-size="12" fill="#475569" font-style="italic">ostrich"</text>
+
+  <!-- agent -->
+  <rect x="250" y="70" width="290" height="280" rx="14" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+  <text x="395" y="102" text-anchor="middle" font-size="16" font-weight="700" fill="#9f1239">Agent · AMD TokenFactory</text>
+  <text x="395" y="122" text-anchor="middle" font-size="12" fill="#9f1239">DeepSeek-V4-Flash</text>
+  <rect x="272" y="140" width="246" height="56" rx="9" fill="#ffffff" stroke="#fda4af"/>
+  <text x="290" y="164" font-size="14" font-weight="700" fill="#0f172a">1 Understand</text>
+  <text x="290" y="184" font-size="12" fill="#475569">request → class names</text>
+  <rect x="272" y="206" width="246" height="56" rx="9" fill="#ffffff" stroke="#fda4af"/>
+  <text x="290" y="230" font-size="14" font-weight="700" fill="#0f172a">2 Describe</text>
+  <text x="290" y="250" font-size="12" fill="#475569">5 visual descriptions per class</text>
+  <rect x="272" y="272" width="246" height="56" rx="9" fill="#ffffff" stroke="#fda4af"/>
+  <text x="290" y="296" font-size="14" font-weight="700" fill="#0f172a">3 Analogise</text>
+  <text x="290" y="316" font-size="12" fill="#475569">new class → known lookalikes</text>
+
+  <!-- generator -->
+  <rect x="580" y="70" width="330" height="280" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="745" y="102" text-anchor="middle" font-size="16" font-weight="700" fill="#1e3a8a">T2V generator</text>
+  <text x="745" y="122" text-anchor="middle" font-size="12" fill="#1e3a8a">Tina × RPG parameter diffusion · 49M params</text>
+  <rect x="602" y="140" width="286" height="40" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="745" y="165" text-anchor="middle" font-size="13" fill="#0f172a">CLIP text condition (one token per class)</text>
+  <rect x="602" y="190" width="286" height="40" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="745" y="215" text-anchor="middle" font-size="13" fill="#0f172a">LSTM over layer-wise parameter tokens</text>
+  <rect x="602" y="240" width="286" height="40" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="745" y="265" text-anchor="middle" font-size="13" fill="#0f172a">joint transformer + per-token denoiser</text>
+  <rect x="602" y="290" width="286" height="40" rx="8" fill="#ffffff" stroke="#93c5fd"/>
+  <text x="745" y="315" text-anchor="middle" font-size="13" fill="#0f172a">rows = text prior + analogies + correction</text>
+
+  <!-- output -->
+  <rect x="950" y="150" width="220" height="120" rx="12" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+  <text x="1060" y="185" text-anchor="middle" font-size="16" font-weight="700" fill="#065f46">Vision model</text>
+  <text x="1060" y="210" text-anchor="middle" font-size="13" fill="#065f46">ResNet-20, all 274,042</text>
+  <text x="1060" y="228" text-anchor="middle" font-size="13" fill="#065f46">weights generated</text>
+  <text x="1060" y="254" text-anchor="middle" font-size="12" fill="#047857">0.08 s · weights.pt / ONNX</text>
+
+  <line x1="210" y1="210" x2="246" y2="210" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="540" y1="210" x2="576" y2="210" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="910" y1="210" x2="946" y2="210" stroke="#475569" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- training (once) -->
+  <rect x="580" y="400" width="330" height="90" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+  <text x="745" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">Trained once on a model zoo</text>
+  <text x="745" y="452" text-anchor="middle" font-size="12" fill="#475569">1,000 ResNet-20s fine-tuned on ImageNet-1k tasks</text>
+  <text x="745" y="470" text-anchor="middle" font-size="12" fill="#475569">900 seen classes · 100 never seen</text>
+  <line x1="745" y1="398" x2="745" y2="354" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+
+  <text x="40" y="440" font-size="13" fill="#475569">No training and no images per model.</text>
+  <text x="40" y="462" font-size="13" fill="#475569">New classes: 63.6% (fine-tuned oracle 74.1%), 10-way.</text>
+</svg>
