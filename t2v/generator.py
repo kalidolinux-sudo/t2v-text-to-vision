@@ -154,12 +154,14 @@ def cosine_alpha_bar(steps, s=0.008):
 class T2VGenerator(nn.Module):
     def __init__(self, layer_ids, intra_ids, slots, token_size, clip_dim=512, d_model=512, backbone="lstm",
                  backbone_layers=2, cond_layers=2, heads=8, channels=(64, 128, 256), diffusion_steps=1000,
-                 denoiser="conv", mlp_hidden=512, mlp_depth=3, pred="x0", clip=None):
+                 denoiser="conv", mlp_hidden=512, mlp_depth=3, pred="x0", clip=None, joint_layers=0,
+                 valid=None):
         super().__init__()
         self.config = dict(token_size=token_size, clip_dim=clip_dim, d_model=d_model, backbone=backbone,
                            backbone_layers=backbone_layers, cond_layers=cond_layers, heads=heads,
                            channels=tuple(channels), diffusion_steps=diffusion_steps, denoiser=denoiser,
-                           mlp_hidden=mlp_hidden, mlp_depth=mlp_depth, pred=pred, clip=clip)
+                           mlp_hidden=mlp_hidden, mlp_depth=mlp_depth, pred=pred, clip=clip,
+                           joint_layers=joint_layers)
         self.register_buffer("slots", slots.clone(), persistent=False)
         half = d_model // 2
         self.register_buffer("pos", torch.cat([sincos(layer_ids, half), sincos(intra_ids, half)], -1), persistent=False)
@@ -173,8 +175,24 @@ class T2VGenerator(nn.Module):
                                        nn.Linear(d_model, d_model))
         self.denoiser = (ConvDenoiser(token_size, d_model, channels) if denoiser == "conv"
                          else MLPDenoiser(token_size, d_model, mlp_hidden, mlp_depth))
+        # Hybrid mode (joint_layers > 0): as in Tina / G.pt, every noisy parameter token of a model is
+        # embedded and a transformer lets the tokens attend to each other (and to the class tokens) at each
+        # denoising step, so the layers of one network are denoised consistently. Its output refines the
+        # RPG prototypes, and the cheap per-token denoiser above still decodes each token.
+        if joint_layers > 0:
+            if valid is None:
+                raise ValueError("joint mode needs the tokenizer's valid mask")
+            self.register_buffer("valid", valid.clone(), persistent=False)
+            self.joint_in = nn.Linear(token_size, d_model)
+            self.joint_time = nn.Sequential(nn.Linear(d_model, d_model), nn.SiLU(), nn.Linear(d_model, d_model))
+            layer = nn.TransformerDecoderLayer(d_model, heads, 4 * d_model, dropout=0.0, batch_first=True,
+                                               norm_first=True)
+            self.joint = nn.TransformerDecoder(layer, joint_layers)  # self-attention over tokens + cross-attention to classes
+            self.joint_out = nn.Linear(d_model, d_model)
+            nn.init.zeros_(self.joint_out.weight)
+            nn.init.zeros_(self.joint_out.bias)
 
-    def prototypes(self, emb, cls_mask):
+    def prototypes(self, emb, cls_mask, return_classes=False):
         c = self.cond(emb, cls_mask)                                             # (B, K, d)
         m = cls_mask[..., None].float()
         pooled = (c * m).sum(1) / m.sum(1).clamp_min(1)                         # (B, d)
@@ -183,7 +201,13 @@ class T2VGenerator(nn.Module):
         h = h + torch.where(is_head, c[:, self.slots.clamp_min(0)], torch.zeros((), device=h.device))
         h = self.backbone(h)
         h = h + self.xattn(self.xnorm(h), c, c, need_weights=False)[0]
-        return self.proto_out(h)
+        return (self.proto_out(h), c) if return_classes else self.proto_out(h)
+
+    def context(self, x_t, step, proto, classes):
+        """Joint mode: refine prototypes with the current noisy tokens of the whole network.
+        x_t (B,T,D), step (B,), proto (B,T,d), classes (B,K,d) -> (B,T,d)."""
+        h = self.joint_in(x_t * self.valid) + proto + self.joint_time(sincos(step, self.config["d_model"]))[:, None]
+        return proto + self.joint_out(self.joint(h, classes))
 
     def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None, min_snr=0.0, head_weight=1.0):
         """x0 (B,T,D) normalised tokens, valid (T,D), row_valid (B,T) -> denoising MSE.
@@ -191,7 +215,15 @@ class T2VGenerator(nn.Module):
         noisy timesteps where the target is unpredictable and speeds up convergence.
         Classifier-row tokens are always included and weighted by head_weight: in deep nets they are a
         tiny fraction of all tokens (10 of 364 in ResNet-20), yet they carry all the class information."""
-        proto = self.prototypes(emb, cls_mask)
+        joint = self.config.get("joint_layers", 0) > 0
+        proto, classes = self.prototypes(emb, cls_mask, return_classes=True)
+        if joint:
+            B = x0.shape[0]
+            step_b = torch.randint(0, len(self.alpha_bar), (B,), device=x0.device)
+            ab_b = self.alpha_bar[step_b][:, None, None]
+            noise_all = torch.randn_like(x0)
+            xt_all = ab_b.sqrt() * x0 + (1 - ab_b).sqrt() * noise_all
+            proto = self.context(xt_all, step_b, proto, classes)
         sel = row_valid.nonzero()
         is_head = self.slots[sel[:, 1]] >= 0
         if tokens_per_step and len(sel) > tokens_per_step:
@@ -202,10 +234,15 @@ class T2VGenerator(nn.Module):
             is_head = self.slots[sel[:, 1]] >= 0
         b, t = sel[:, 0], sel[:, 1]
         x, p, vm = x0[b, t], proto[b, t], valid[t].float()
-        step = torch.randint(0, len(self.alpha_bar), (len(x),), device=x.device)
-        ab = self.alpha_bar[step][:, None]
-        noise = torch.randn_like(x)
-        pred = self.denoiser(ab.sqrt() * x + (1 - ab).sqrt() * noise, step, p)
+        if joint:
+            step, noise, xt = step_b[b], noise_all[b, t], xt_all[b, t]
+            ab = self.alpha_bar[step][:, None]
+        else:
+            step = torch.randint(0, len(self.alpha_bar), (len(x),), device=x.device)
+            ab = self.alpha_bar[step][:, None]
+            noise = torch.randn_like(x)
+            xt = ab.sqrt() * x + (1 - ab).sqrt() * noise
+        pred = self.denoiser(xt, step, p)
         target = x if self.config["pred"] == "x0" else noise
         err = (((pred.float() - target) ** 2) * vm).sum(-1)
         if min_snr > 0:
@@ -225,7 +262,8 @@ class T2VGenerator(nn.Module):
         the largest normalised value seen in the zoo (without it, eps-prediction diverges at t~T)."""
         if clip == "auto":
             clip = self.config.get("clip")
-        proto = self.prototypes(emb, cls_mask)
+        joint = self.config.get("joint_layers", 0) > 0
+        proto, classes = self.prototypes(emb, cls_mask, return_classes=True)
         B, T, d = proto.shape
         p = proto.reshape(B * T, d)
         x = torch.randn(B * T, self.config["token_size"], device=p.device)
@@ -233,6 +271,8 @@ class T2VGenerator(nn.Module):
         for i, t in enumerate(ts):
             ab = self.alpha_bar[t]
             ab_prev = self.alpha_bar[ts[i + 1]] if i + 1 < len(ts) else torch.ones((), device=p.device)
+            if joint:  # the whole network's current noisy state refines every token's condition
+                p = self.context(x.view(B, T, -1), t.expand(B), proto, classes).reshape(B * T, d)
             out = torch.cat([self.denoiser(x[j:j + chunk], t.expand(len(x[j:j + chunk])), p[j:j + chunk]).float()
                              for j in range(0, len(x), chunk)])
             if self.config.get("pred", "eps") == "x0":
