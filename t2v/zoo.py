@@ -38,7 +38,10 @@ def pick_device(name="auto"):
     return "cuda" if torch.cuda.is_available() else "cpu"  # ROCm PyTorch also reports "cuda"
 
 
-def train(model, x_u8, y, epochs, lr, bs, k=None, wd=5e-4):
+def train(model, x_u8, y, epochs, lr, bs, k=None, wd=5e-4, amp=False):
+    """SGD + cosine LR. amp: fp16 autocast with loss scaling (about 1.5-2x faster on T4-class GPUs)."""
+    amp = amp and y.device.type == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=amp)
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=wd, nesterov=True)
     total = max(1, epochs * math.ceil(len(y) / bs))
@@ -51,13 +54,15 @@ def train(model, x_u8, y, epochs, lr, bs, k=None, wd=5e-4):
         perm = torch.randperm(len(y), device=y.device)
         for i in range(0, len(y), bs):
             idx = perm[i:i + bs]
-            logits = model(prep(x_u8[idx], train=True))
-            if k is not None:
-                logits = logits[:, :k]  # padded class slots never receive gradient
-            loss = F.cross_entropy(logits, y[idx])
+            with torch.autocast("cuda", dtype=torch.float16, enabled=amp):
+                logits = model(prep(x_u8[idx], train=True))
+                if k is not None:
+                    logits = logits[:, :k]  # padded class slots never receive gradient
+                loss = F.cross_entropy(logits.float(), y[idx])
             opt.zero_grad(set_to_none=True)
-            loss.backward()
-            opt.step()
+            scaler.scale(loss).backward()
+            scaler.step(opt)
+            scaler.update()
             sched.step()
     model.eval()
     return model
@@ -108,7 +113,7 @@ def cmd_generic(a):
     y = torch.tensor(seen, device=dev)[y]  # keep the original class ids for the n_cls-way head
     model = target.build(a.arch, n_cls).to(dev)
     t0 = time.time()
-    train(model, x, y, a.epochs, a.lr, a.bs, wd=a.wd)
+    train(model, x, y, a.epochs, a.lr, a.bs, wd=a.wd, amp=a.amp)
     xt, yt = data.subset(seen, train=False)
     acc = accuracy(model, xt, torch.tensor(seen, device=dev)[yt])
     os.makedirs(a.out, exist_ok=True)
@@ -197,11 +202,12 @@ def cmd_pmodels(a):
             m = personalise(g["state"], arch, classes, dev, text_emb)
             for name, p in m.named_parameters():
                 p.requires_grad_(trainable(name, a.finetune, n_blocks))
-            train(m, x, y, a.epochs, a.lr, a.bs, k=len(classes), wd=a.wd)
+            train(m, x, y, a.epochs, a.lr, a.bs, k=len(classes), wd=a.wd, amp=a.amp)
             runs.append(target.flatten(m))
         flat = torch.stack(runs).mean(0)  # model soup: seed noise averages out
         if a.soup > 1:
-            done["seed_sqdist"].append(((runs[0] - runs[1]) ** 2).sum().item())
+            nb = target.num_body_params(arch)  # body only: the head varies with the classes, not the seed
+            done["seed_sqdist"].append(((runs[0][:nb] - runs[1][:nb]) ** 2).sum().item())
         m = target.load_flat(target.build(arch).to(dev), flat.to(dev))
         xt, yt = data.subset(classes, train=False)
         done["acc"].append(accuracy(m, xt, yt, k=len(classes)))
@@ -231,6 +237,7 @@ def cmd_analyze(a):
         raise SystemExit("no seed distances stored (build the zoo with --soup 2 or more)")
     flat = torch.stack(flats).float()
     spec = target.param_spec(target.build(meta["arch"]))
+    flat = flat[:, :target.num_body_params(meta["arch"])]   # body only (the head follows the classes)
     var_tasks = flat.var(0)                           # per element
     moving = var_tasks > 0                            # frozen layers do not vary at all
     n_moving = int(moving.sum())
@@ -261,6 +268,7 @@ def main():
         s.add_argument("--device", default="auto")
         s.add_argument("--seed", type=int, default=0)
         s.add_argument("--bs", type=int, default=128)
+        s.add_argument("--amp", action="store_true", help="fp16 mixed-precision training on GPU")
     g = sub.choices["generic"]
     g.add_argument("--arch", default="resnet20", choices=list(target.ARCHS))
     g.add_argument("--dataset", default="cifar100", choices=["cifar100", "imagenet32"])

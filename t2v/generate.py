@@ -25,6 +25,11 @@ def load_generator(path, device):
     gen.arch = ck["arch"]
     W = ck.get("semantic_prior_W")
     gen.semantic_W = W.to(device) if W is not None else None
+    gen.names = ck["names"]
+    gen.gate = ck.get("gate", 0.98)
+    gen.row_table = ck.get("row_table")
+    gen.neighbors = ck.get("neighbors")
+    gen.seen_ids = ck.get("train_classes")
     gen.seen_emb = None
     if ck.get("train_classes") is not None:  # for the known-class gate
         gen.seen_emb = embed_names([ck["names"][c] for c in ck["train_classes"]], device,
@@ -33,12 +38,46 @@ def load_generator(path, device):
     return gen, tok, ck
 
 
+def neighbor_rows(gen, names, emb, mode, need):
+    """Classifier-row prior from visual neighbours among the training classes, one per class (or None).
+    mode "llm": TokenFactory's analogies (stored for the held-out classes, asked live for other names);
+    mode "clip": the CLIP nearest-neighbour baseline. need: (k,) bool, the classes that want a prior.
+    Returns (rows (k, F+1), NaN where there is none, or None; beta)."""
+    nb, table = getattr(gen, "neighbors", None), getattr(gen, "row_table", None)
+    if mode == "ridge" or nb is None or table is None or gen.seen_ids is None:
+        return None, 0.0
+    from . import neighbors as N
+    table = table.to(emb.device)
+    if mode == "clip":
+        return N.clip_mix(emb, gen.seen_emb, gen.seen_ids, table, nb["clip_k"], nb["clip_tau"]), nb["clip_beta"]
+    name2id = {n: i for i, n in enumerate(gen.names) if i in set(gen.seen_ids)}
+    store = nb["store"]
+    missing = [c for c, m in zip(names, need.tolist()) if m and c not in store]
+    if missing:  # a class nobody asked about yet: shortlist known classes with CLIP, let the LLM pick
+        seen_names = [gen.names[i] for i in gen.seen_ids]
+        idx = [names.index(c) for c in missing]
+        cands = N.shortlist(emb[idx], gen.seen_emb, seen_names, 20)
+        store.update(N.ask(missing, dict(zip(missing, cands))))
+    rows = [N.mix_rows(store.get(c), table, name2id) if m else None for c, m in zip(names, need.tolist())]
+    if all(r is None for r in rows):
+        return None, 0.0
+    fill = torch.full_like(table[0], float("nan"))
+    return torch.stack([r if r is not None else fill for r in rows]), nb["llm_beta"]
+
+
 @torch.no_grad()
 def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None,
-                  amp=False, body_noise=1.0, gate=None):
-    """Weights for `n` models classifying `class_names` (in order). Returns (n, P) flat vectors.
-    For a generator trained with descriptions, each class is described visually before it is embedded:
-    `descriptions` (e.g. from the request parser) first, then the training set's, then the LLM."""
+                  amp=False, body_noise=1.0, gate=None, prior="auto"):
+    """Weights for `n` models classifying `class_names` (names, or class ids of the training set), in order.
+    Returns (n, P) flat vectors. For a generator trained with descriptions, each class is described visually
+    before it is embedded: `descriptions` (e.g. from the request parser) first, then the training set's,
+    then the LLM. gate: known-class gate ("auto" = the checkpoint's). prior for classes the gate calls new:
+    "llm" = ridge blended with TokenFactory visual neighbours, "clip" = with CLIP neighbours, "ridge" = ridge
+    alone, "auto" = whichever of llm/clip scored better in the cross-validation at training time."""
+    class_names = [gen.names[c] if not isinstance(c, str) and getattr(gen, "names", None) else c
+                   for c in class_names]
+    if gate == "auto":
+        gate = getattr(gen, "gate", 0.98)
     K = tok.K
     if len(class_names) > K:
         raise ValueError(f"at most {K} classes")
@@ -59,6 +98,7 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
     tokens = gen.sample(full, mask, steps=steps, amp=amp, body_noise=body_noise)
     flat = tok.decode(tokens, num_classes=len(class_names))
     if getattr(gen, "semantic_W", None) is not None:  # rows = semantic prior from the class text + generated correction
+        rows = emb @ gen.semantic_W
         if gate is not None and getattr(gen, "seen_emb", None) is not None:
             # known-class gate: keep the generated correction only for classes the generator was trained on
             # (CLIP similarity >= gate to a training class); for new classes it tends to add a remembered
@@ -66,13 +106,22 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
             known = (emb @ gen.seen_emb.T).max(1).values >= gate
             corr = target.head_rows(gen.arch, flat)[:, :len(class_names)]
             flat = target.add_head_rows(gen.arch, flat, corr * (~known)[None, :, None], sign=-1.0)
-        flat = target.add_head_rows(gen.arch, flat, (emb @ gen.semantic_W)[None].expand(n, -1, -1))
+            # new classes: mix in the rows of the known classes they look like (beta chosen by cross-validation)
+            nb_rows, beta = neighbor_rows(gen, class_names, emb, (gen.neighbors or {}).get("auto", "llm") if prior == "auto" else prior, ~known)
+            if nb_rows is not None:
+                use = ~known & ~nb_rows.isnan().any(1)
+                rows = torch.where(use[:, None], (1 - beta) * rows + beta * nb_rows.nan_to_num(), rows)
+        flat = target.add_head_rows(gen.arch, flat, rows[None].expand(n, -1, -1))
     arch = arch or getattr(gen, "arch", None)
     if arch and target.has_prior(arch):
         if prior_emb is None:
             prior_emb = embed_names(class_names, dev, ensemble=True)
         flat = target.add_head_prior(arch, flat, prior_emb)
     return flat
+
+
+def parse_gate(v):
+    return None if v in (None, "none") else v if v == "auto" else float(v)
 
 
 def embed_images(class_images, device="cpu"):
@@ -164,7 +213,9 @@ def main():
     p.add_argument("--steps", type=int, default=5, help="DDIM steps (5 beat 10 and 20 on ResNet-20)")
     p.add_argument("--average", type=int, default=1, help="average this many samples into one model")
     p.add_argument("--body_noise", type=float, default=0.0, help="0 = body at its conditional mean (best on ResNet-20)")
-    p.add_argument("--gate", type=float, default=0.98, help="known-class gate for the semantic head prior")
+    p.add_argument("--gate", default="auto", help="known-class gate for the semantic head prior (auto = checkpoint's)")
+    p.add_argument("--prior", default="auto", choices=["auto", "llm", "clip", "ridge"],
+                   help="row prior for new classes (auto = TokenFactory visual neighbours when available)")
     p.add_argument("--device", default="auto")
     a = p.parse_args()
     dev = pick_device(a.device)
@@ -184,7 +235,7 @@ def main():
     t0 = time.time()
     flat = generate_flat(gen, tok, classes, n=a.average, steps=a.steps, emb=emb,
                          descriptions=(info.get("descriptions") if a.prompt else None),
-                         body_noise=a.body_noise, gate=a.gate).mean(0)
+                         body_noise=a.body_noise, gate=parse_gate(a.gate), prior=a.prior).mean(0)
     dt = time.time() - t0
     model = build_model(ck["arch"], flat, len(classes))
     onnx_path = export(model, classes, ck["arch"], a.out)

@@ -116,6 +116,13 @@ def _head_offsets(arch):
     return w0, b0, K, feat
 
 
+def num_body_params(arch):
+    """Parameters before the classifier (the head tensors come last in the flat vector)."""
+    spec = param_spec(build(arch))
+    assert [n for n, _ in spec[-2:]] == list(HEAD)
+    return sum(int(torch.Size(s).numel()) for n, s in spec[:-2])
+
+
 def head_rows(arch, flat):
     """flat (..., P) -> classifier rows (..., K, feat + 1) as [weight row, bias]."""
     w0, b0, K, feat = _head_offsets(arch)

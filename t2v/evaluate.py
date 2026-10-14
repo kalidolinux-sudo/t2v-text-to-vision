@@ -14,7 +14,7 @@ import torch
 
 from . import target
 from .data import dataset_from_meta, prep
-from .generate import generate_flat, load_generator
+from .generate import generate_flat, load_generator, parse_gate
 from .text_embed import embed_names
 from .train_gen import load_split
 from .zoo import accuracy, pick_device
@@ -31,9 +31,11 @@ def main():
     p.add_argument("--steps", type=int, default=100)
     p.add_argument("--device", default="auto")
     p.add_argument("--body_noise", type=float, default=1.0, help="0 = start the body at the mean when sampling")
-    p.add_argument("--gate", type=float, default=None,
+    p.add_argument("--gate", default=None,
                    help="known-class gate for the semantic prior: keep the generated row correction only for "
-                        "classes with CLIP similarity >= this to a training class (e.g. 0.95)")
+                        "classes with CLIP similarity >= this to a training class (auto = the checkpoint's)")
+    p.add_argument("--prior", default="auto", choices=["auto", "llm", "clip", "ridge"],
+                   help="row prior for classes the gate calls new")
     p.add_argument("--fp16", action="store_true", help="fp16 sampling on GPU")
     p.add_argument("--average", type=int, default=1,
                    help="average the weights of this many generated samples into one model")
@@ -49,8 +51,9 @@ def main():
     data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
     generic = target.build(arch, len(meta["names"])).to(dev)
     generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
-    gen.seen_emb = embed_names([ck["names"][c] for c in sorted(seen)], dev, ensemble=ck.get("prompt_ensemble", False),
-                               descriptions=ck.get("descriptions"))
+    if gen.seen_emb is None:  # checkpoints saved before train_classes was stored
+        gen.seen_emb = embed_names([ck["names"][c] for c in sorted(seen)], dev,
+                                   ensemble=ck.get("prompt_ensemble", False), descriptions=ck.get("descriptions"))
     class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False),
                             descriptions=ck.get("descriptions"))
     net = target.build(arch).to(dev)
@@ -70,7 +73,7 @@ def main():
             t0 = time.time()
             flats = generate_flat(gen, tok, cls, n=a.samples * a.average, steps=a.steps, emb=class_emb[cls],
                                   prior_emb=zs_emb[cls], arch=arch, amp=a.fp16, body_noise=a.body_noise,
-                                  gate=a.gate)
+                                  gate=parse_gate(a.gate), prior=a.prior)
             if a.average > 1:  # the samples share the zoo's layout, so their mean is a sharper estimate
                 flats = flats.view(a.samples, a.average, -1).mean(1)
             if dev.startswith("cuda"):
@@ -103,7 +106,7 @@ def main():
                                          for k, v in summary.items()))
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     with open(a.out, "w") as f:
-        json.dump({"arch": arch, "num_params": tok.num_params, **report}, f, indent=1)
+        json.dump({"arch": arch, "num_params": tok.num_params, "gate": a.gate, "prior": a.prior, **report}, f, indent=1)
     print(f"wrote {a.out}")
 
 
