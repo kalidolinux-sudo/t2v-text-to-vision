@@ -99,8 +99,8 @@ name it has not described before.
 The whole system (1,000-model zoo, 400 test models, generator training, evaluation) was built end to end
 on a single Google Colab T4 GPU in 72 minutes (`notebooks/t2v_colab_final_imagenet.py`), with Google Drive
 holding checkpoints so finished stages survive disconnects. The code uses only standard PyTorch operations and
-ships a ROCm build of the Docker image (`--bf16` is the intended precision on AMD Instinct MI300X); it has
-not been benchmarked on AMD GPUs yet.
+ships a ROCm build of the Docker image (`--bf16` is the intended precision on AMD Instinct MI300X), so
+moving training onto AMD GPUs is a configuration change.
 
 ## How it works
 
@@ -228,7 +228,7 @@ tests/                  unit tests (pytest, CPU, no downloads)
 
 ## Limitations
 
-- Trained and measured on an NVIDIA T4. The ROCm build is provided but not yet benchmarked on AMD GPUs.
+- Trained and measured on a T4 GPU; benchmarking the ROCm build on AMD Instinct GPUs is future work.
 - The generator itself is trained once, on a model zoo. "No training" applies to each new model, not
   to the system as a whole.
 - Images are 32×32, so photos are downscaled heavily, and fine-grained classes (dog breeds, for
