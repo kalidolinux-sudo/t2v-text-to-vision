@@ -107,6 +107,33 @@ Three things it took to get there, all now options in `t2v.train_gen`:
   22% → 73.9%.
 - **`--fp16` + MLP denoiser**: 7.6 steps/s on a T4, against 1 step/s with the conv denoiser in fp32.
 
+### T2V-Hybrid: more of Tina and RPG together
+
+The same ResNet-20 zoo and settings were used for every run below (30 test tasks per row).
+
+| Run | Seen | Half unseen | All unseen | s/model |
+|---|---|---|---|---|
+| v4: RPG generator, element norm, head weighting | 73.9% | 49.4% | 33.0% | 0.12 |
+| v4b: + EMA warm-up fix | 80.3% | 44.5% | 34.0% | 0.12 |
+| **v6b: + Tina/G.pt joint transformer + LLM visual descriptions** | **81.2%** | **51.5%** | **41.5%** | 0.23 |
+| Oracle (fine-tuned on each task) | 89.3% | 79.8% | 78.3% | n/a |
+
+- **Joint transformer (`--joint_layers 4`)**: this follows Tina and G.pt. At every denoising step, all
+  noisy parameter tokens of the network attend to each other and to the class tokens, so the head is
+  denoised in step with the body. The output refines RPG's prototypes, and RPG's per-token denoiser
+  still decodes each token.
+- **Visual descriptions (`--descriptions`, `t2v.describe`)**: this follows CuPL. DeepSeek on AMD
+  TokenFactory writes five visual descriptions per class, and the CLIP condition averages them with the
+  prompt templates. At generation time the request parser writes task-aware descriptions, for example
+  "ripe banana: yellow peel with brown spots" against "unripe banana: green peel". Classes the
+  generator never saw are described on the fly.
+- **EMA warm-up**: a fixed 0.999 decay kept 37% of the random initial weights after 1,000 steps and 5%
+  after 3,000.
+
+Two runs were not separated: the joint transformer and the descriptions were added together. On the
+small CNN, descriptions alone gave +0.9 points on fully unseen classes (34.8% → 35.7%, 60 tasks), which
+is within noise.
+
 ## Run it
 
 ```bash
