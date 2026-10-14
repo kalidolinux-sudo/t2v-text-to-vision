@@ -124,17 +124,28 @@ def main():
         r["5_diversity"] = {"spread_across_noise": mean(within), "spread_across_tasks": across,
                             "accuracy_range_across_noise": mean(accs_spread)}
 
-        # 6. memorisation: distance to the right answer vs to the nearest training model
-        d_oracle, d_nn, shared = [], [], []
+        # 6. memorisation, on the classifier rows only: body tokens are mostly fine-tuning noise, so a
+        # whole-network distance says nothing about copying. Each generated row is compared with the right
+        # row (oracle) and with the nearest row of any training model.
+        head_pos = tok.head_pos
+        train_rows = train_z[:, head_pos][..., :tok.valid[head_pos[0]].sum()]          # (N, K, F+1)
+        train_rows = train_rows[train_cls >= 0]                                        # real rows only
+        d_or, d_nn = [], []
         for zg, zo, (_, cls, _) in zip(z_g, z_o, tasks):
-            d_train = ((train_z - zg) ** 2 * tok.valid).sum((1, 2))
-            j = d_train.argmin().item()
-            d_oracle.append(((zg - zo) ** 2 * tok.valid).sum().sqrt().item())
-            d_nn.append(d_train[j].sqrt().item())
-            shared.append(len(set(cls) & set(c for c in train_cls[j].tolist() if c >= 0)) / len(cls))
-        r["6_memorisation"] = {"distance_to_oracle": mean(d_oracle), "distance_to_nearest_train_model": mean(d_nn),
-                               "closer_to_a_train_model_than_to_oracle": mean([n < o for n, o in zip(d_nn, d_oracle)]),
-                               "class_overlap_with_that_train_model": mean(shared)}
+            F1 = train_rows.shape[-1]
+            g_rows, o_rows = zg[head_pos[:len(cls)], :F1], zo[head_pos[:len(cls)], :F1]
+            d_or += (g_rows - o_rows).norm(dim=-1).tolist()
+            d_nn += torch.cdist(g_rows, train_rows).min(1).values.tolist()
+        r["6_memorisation_rows"] = {"row_distance_to_oracle": mean(d_or),
+                                    "row_distance_to_nearest_train_row": mean(d_nn),
+                                    "rows_closer_to_a_train_row": mean([n < o for n, o in zip(d_nn, d_or)])}
+
+        # body = zoo mean? compare with the error of simply outputting the zoo's average model
+        z_m = tok.encode(mean_flat[None]).expand_as(z_o)
+        err_m = ((z_m - z_o).abs() * tok.valid).sum(-1) / tok.valid.sum(-1).clamp_min(1)
+        body = tok.slots < 0
+        r["4b_body_vs_mean_model"] = {"generated_body_error": err[:, body].mean().item(),
+                                      "zoo_mean_body_error": err_m[:, body].mean().item()}
 
         # 7. per-class recall vs CLIP similarity to the nearest seen class
         if split == "eval_novel":
@@ -154,6 +165,42 @@ def main():
             r["7_unseen_classes"] = {"recall_vs_similarity_correlation": corr,
                                      "recall_far_from_seen (lower half)": rt[lo].mean().item(),
                                      "recall_close_to_seen (upper half)": rt[~lo].mean().item()}
+        # 8. semantic head prior (DeViSE-style): a ridge map from class text embeddings to the generic model's
+        # classifier rows, fitted on seen classes only; lambda chosen by 5-fold CV over seen classes (row cosine),
+        # never on test tasks. Rows go on the zoo-mean body and on the generated body.
+        if "ridge_W" not in globals():
+            g_state = torch.load(f"{a.zoo}/generic.pt", map_location=dev)["state"]
+            rows_all = torch.cat([g_state["fc.weight"], g_state["fc.bias"][:, None]], 1)
+            X, Y = E[seen], rows_all[seen]
+            folds = torch.arange(len(seen)) % 5
+            best = None
+            for lam in (1e-3, 1e-2, 1e-1, 1.0, 10.0):
+                cos = []
+                for f in range(5):
+                    tr_, te_ = folds != f, folds == f
+                    W = torch.linalg.solve(X[tr_].T @ X[tr_] + lam * torch.eye(X.shape[1], device=dev), X[tr_].T @ Y[tr_])
+                    cos.append(torch.nn.functional.cosine_similarity(X[te_] @ W, Y[te_], dim=-1).mean().item())
+                if best is None or mean(cos) > best[1]:
+                    best = (lam, mean(cos))
+            lam = best[0]
+            globals()["ridge_W"] = torch.linalg.solve(X.T @ X + lam * torch.eye(X.shape[1], device=dev), X.T @ Y)
+            globals()["ridge_info"] = {"lambda (5-fold CV on seen classes)": lam, "cv_row_cosine": best[1]}
+
+        def with_rows(base, cls):
+            f = base.clone()
+            w0 = nb
+            F = (f.numel() - nb - K) // K
+            rows = E[cls] @ ridge_W
+            w = torch.zeros(K, F, device=dev)
+            b = torch.zeros(K, device=dev)
+            w[:len(cls)], b[:len(cls)] = rows[:, :F], rows[:, F]
+            f[w0:w0 + K * F] = w.flatten()
+            f[w0 + K * F:] = b
+            return f
+        r["8_semantic_head_prior"] = {**ridge_info,
+                                      "ridge head + zoo-mean body": mean([acc(with_rows(mean_flat, c), c) for _, c, _ in tasks]),
+                                      "ridge head + generated body": mean([acc(with_rows(g, c), c) for g, (_, c, _) in zip(g_all, tasks)]),
+                                      "T2V (generated head + body)": mean(right)}
         report[split] = r
 
         print(f"=== {split} ({len(tasks)} tasks) ===")
