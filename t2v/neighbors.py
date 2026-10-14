@@ -128,8 +128,8 @@ def fit_blend(class_emb, rows, cls_ids, table, lam, val_ids, val_picks, names, s
     the score is the cosine to its real (zoo-mean) row. Returns the chosen weights and all scores, for the
     TokenFactory neighbours and for a CLIP nearest-neighbour baseline that uses no LLM.
     class_emb (C, E), rows (M, F+1) and cls_ids (M,): every zoo row and its class."""
-    name2id = {n: i for i, n in enumerate(names)}
-    V = [c for c in val_ids if mix_rows(val_picks.get(names[c]), table, name2id) is not None]
+    name2id = {names[i]: i for i in seen_ids}  # classes with a learned row
+    V = [c for c in val_ids if c in name2id.values() and mix_rows(val_picks.get(names[c]), table, name2id) is not None]
     if len(V) < 10:
         return None
     Vt = torch.tensor(V)

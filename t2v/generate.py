@@ -50,7 +50,7 @@ def neighbor_rows(gen, names, emb, mode, need):
     table = table.to(emb.device)
     if mode == "clip":
         return N.clip_mix(emb, gen.seen_emb, gen.seen_ids, table, nb["clip_k"], nb["clip_tau"]), nb["clip_beta"]
-    name2id = {n: i for i, n in enumerate(gen.names) if i in set(gen.seen_ids)}
+    name2id = {gen.names[i]: i for i in gen.seen_ids}  # classes with a learned row
     store = nb["store"]
     missing = [c for c, m in zip(names, need.tolist()) if m and c not in store]
     if missing:  # a class nobody asked about yet: shortlist known classes with CLIP, let the LLM pick
