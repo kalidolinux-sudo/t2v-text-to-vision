@@ -73,6 +73,8 @@ def main():
     p.add_argument("--no_perm_aug", action="store_true")
     p.add_argument("--prompt_ensemble", action="store_true", help="average CLIP embeddings over several templates")
     p.add_argument("--descriptions", help="JSON of LLM-written visual descriptions per class (t2v.describe)")
+    p.add_argument("--semantic_prior", action="store_true",
+                   help="generate classifier rows as a correction to a ridge map from class text to rows")
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
     p.add_argument("--fp16", action="store_true", help="fp16 autocast + loss scaling (for T4/V100-class GPUs)")
@@ -95,9 +97,20 @@ def main():
     print(f"zoo: {len(flat)} p-models x {flat.shape[1]:,} params (mean acc {accs.mean():.3f})")
 
     spec = target.param_spec(target.build(meta["arch"]))
-    tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
     descriptions = json.load(open(a.descriptions)) if a.descriptions else None
     class_emb = embed_names(meta["names"], dev, ensemble=a.prompt_ensemble, descriptions=descriptions)
+    semantic_W, semantic_info = None, None
+    if a.semantic_prior:
+        rows = target.head_rows(meta["arch"], flat)                          # (N, K, F+1)
+        valid_rows = classes >= 0
+        cls_ids = classes[valid_rows]
+        semantic_W, semantic_info = target.fit_semantic_prior(class_emb[cls_ids.to(dev)].cpu(), rows[valid_rows].float(),
+                                                              cls_ids)
+        prior = class_emb[classes.clamp_min(0).to(dev)].cpu() @ semantic_W   # (N, K, F+1)
+        prior = prior * valid_rows[..., None]
+        flat = target.add_head_rows(meta["arch"], flat, prior, sign=-1.0)    # train on the correction only
+        print(f"semantic prior: {semantic_info}")
+    tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
     clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
                        a.backbone, a.backbone_layers, a.cond_layers,
@@ -130,6 +143,7 @@ def main():
         torch.save({"generator": weights, "config": gen.config, "tokenizer": tok.state(),
                     "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
                     "descriptions": descriptions,
+                    "semantic_prior_W": semantic_W, "semantic_prior_info": semantic_info,
                     "step": step}, a.out)
 
     flags = {"stop": False, "snapshot": False}

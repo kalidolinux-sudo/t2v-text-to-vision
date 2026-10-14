@@ -32,6 +32,7 @@ def main():
     p.add_argument("--data", default="data")
     p.add_argument("--tasks", type=int, default=20, help="tasks per split")
     p.add_argument("--steps", type=int, default=5)
+    p.add_argument("--body_noise", type=float, default=1.0, help="0 = start the body at the mean when sampling")
     p.add_argument("--fp16", action="store_true")
     p.add_argument("--device", default="auto")
     p.add_argument("--out", default="runs/diagnose.json")
@@ -52,7 +53,8 @@ def main():
     K = tok.K
 
     def gen_flat(cls, emb=None, n=1):
-        return generate_flat(gen, tok, cls, n=n, steps=a.steps, emb=E[cls] if emb is None else emb, amp=a.fp16)
+        return generate_flat(gen, tok, cls, n=n, steps=a.steps, emb=E[cls] if emb is None else emb, amp=a.fp16,
+                             body_noise=a.body_noise)
 
     def acc(flat, cls):
         xt, yt = data.subset(cls, train=False)
