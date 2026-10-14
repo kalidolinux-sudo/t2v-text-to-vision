@@ -19,13 +19,19 @@ from t2v.zoo import pick_device
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--ckpt", default="checkpoints/t2v_tinacnn_cifar100.pt")
+    p.add_argument("--ckpt", default=os.environ.get("T2V_CKPT", "checkpoints/t2v_tinacnn_cifar100.pt"))
+    p.add_argument("--hf_repo", default=os.environ.get("T2V_HF_REPO"),
+                   help="Hugging Face model repo to download --ckpt from when it is not on disk (e.g. user/t2v-1k)")
     p.add_argument("--device", default="auto")
     p.add_argument("--share", action="store_true")
     p.add_argument("--port", type=int, default=7860)
     a = p.parse_args()
     dev = pick_device(a.device)
+    if not os.path.exists(a.ckpt) and a.hf_repo:
+        from huggingface_hub import hf_hub_download
+        a.ckpt = hf_hub_download(a.hf_repo, os.path.basename(a.ckpt))
     gen, tok, ck = load_generator(a.ckpt, dev)
+    agent = "AMD TokenFactory" if os.environ.get("TOKENFACTORY_API_KEY") else "offline (no TokenFactory key set)"
     state = {}
 
     def understand(prompt):
@@ -37,7 +43,8 @@ def main():
         if len(classes) < 2:
             raise gr.Error("Need at least 2 classes.")
         t0 = time.time()
-        flat = generate_flat(gen, tok, classes, steps=int(steps), body_noise=0.0, gate="auto")[0]
+        info = {}
+        flat = generate_flat(gen, tok, classes, steps=int(steps), body_noise=0.0, gate="auto", info=info)[0]
         if dev.startswith("cuda"):
             torch.cuda.synchronize()
         dt = time.time() - t0
@@ -47,7 +54,16 @@ def main():
         state.update(model=model, classes=classes)
         files = [os.path.join(out, "weights.pt")] + ([onnx_path] if onnx_path else [])
         msg = (f"**{tok.num_params:,} parameters** of a `{ck['arch']}` generated in **{dt:.2f}s** "
-               f"on `{dev}` — no training, no images.\n\nClasses: {', '.join(classes)}")
+               f"on `{dev}` — no training, no images.\n\n| class | status | what the agent used |\n|---|---|---|\n")
+        known, analogies, descs = info.get("known", {}), info.get("analogies", {}), info.get("descriptions") or {}
+        for c in classes:
+            status = "known" if known.get(c, True) else "**new**"
+            used = []
+            if c in analogies:
+                used.append("looks like " + ", ".join(f"{n} ({w:.0%})" for n, w in analogies[c].items()))
+            if descs.get(c):
+                used.append(f"“{descs[c][0]}”")
+            msg += f"| {c} | {status} | {' · '.join(used) or '—'} |\n"
         return msg, files
 
     def predict(img):
@@ -57,8 +73,11 @@ def main():
         return {c: float(p) for c, p in zip(state["classes"], prob)}
 
     with gr.Blocks(title="T2V · Text to Vision") as demo:
-        gr.Markdown("# T2V · Text to Vision\nDescribe a classifier in any language. A diffusion model writes every "
-                    "weight of a vision network directly — trained once on AMD Instinct, then no training per model.")
+        gr.Markdown("# T2V · Text to Vision\nDescribe a classifier in any language. An agent on AMD TokenFactory "
+                    "understands the request, describes every class visually and reasons about visual analogies for "
+                    "classes it has never seen; a diffusion model then writes every weight of a vision network "
+                    f"directly. No training and no images per model.\n\nAgent: **{agent}** · generator: "
+                    f"`{ck['arch']}`, {len(ck['names'])} classes in its vocabulary")
         with gr.Row():
             prompt = gr.Textbox(label="What should the model recognise?",
                                 placeholder="أبي نموذج يميز بين القطط والكلاب والخيول / sort fruit: apple, orange, pear")
