@@ -103,6 +103,17 @@ still works: requests are split on commas and the stored descriptions and analog
 and run it. It needs no API key, because the TokenFactory outputs are bundled. It takes about 72
 minutes and saves everything to Google Drive, resuming after a disconnect.
 
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `t2v/` | the package: data and zoo (`data`, `zoo`), tokenizer and generator, training, generation, evaluation, diagnostics, and the TokenFactory agent (`llm`, `describe`, `neighbors`) |
+| `app.py`, `Dockerfile` | Gradio demo, CPU or ROCm container |
+| `data/` | ImageNet-1k class names and split, and the TokenFactory outputs (descriptions of 1,000 classes, visual analogies) |
+| `notebooks/` | one-cell Colab runs; [`notebooks/README.md`](notebooks/README.md) lists them |
+| `results/` | logs and diagnostics of the T2V-1K run |
+| `checkpoints/` | the CIFAR-100 generator; the ImageNet-1k one is fetched from the release |
+
 ## Development log (CIFAR-100)
 
 The method was developed on CIFAR-100 before scaling to ImageNet-1k. T2V combines two lines of
@@ -169,7 +180,7 @@ x₀-prediction by default.
 
 This run used Google Colab with a T4 GPU. Every one of the 274,042 parameters is generated, about 50×
 the CNN above. The zoo has 300 tasks, and the generator trained for 3,000 steps in 7 minutes
-(`notebooks/t2v_colab_fast.py`, then `notebooks/t2v_colab_retrain_v4.py`).
+(`notebooks/cifar100_dev/t2v_colab_fast.py`, then `notebooks/cifar100_dev/t2v_colab_retrain_v4.py`).
 
 | Test tasks (30 each) | **T2V generated** | Oracle (fine-tuned) | Classifier selection | Chance |
 |---|---|---|---|---|
