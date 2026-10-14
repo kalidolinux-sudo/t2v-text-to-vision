@@ -37,7 +37,7 @@ def main():
         if len(classes) < 2:
             raise gr.Error("Need at least 2 classes.")
         t0 = time.time()
-        flat = generate_flat(gen, tok, classes, steps=int(steps), body_noise=0.0, gate=0.98)[0]
+        flat = generate_flat(gen, tok, classes, steps=int(steps), body_noise=0.0, gate="auto")[0]
         if dev.startswith("cuda"):
             torch.cuda.synchronize()
         dt = time.time() - t0

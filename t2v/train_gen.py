@@ -75,6 +75,8 @@ def main():
     p.add_argument("--descriptions", help="JSON of LLM-written visual descriptions per class (t2v.describe)")
     p.add_argument("--semantic_prior", action="store_true",
                    help="generate classifier rows as a correction to a ridge map from class text to rows")
+    p.add_argument("--neighbors", help="JSON from t2v.neighbors: TokenFactory visual analogies for new classes "
+                                      "(needs --semantic_prior; the blend weight is chosen by cross-validation)")
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
     p.add_argument("--fp16", action="store_true", help="fp16 autocast + loss scaling (for T4/V100-class GPUs)")
@@ -99,17 +101,38 @@ def main():
     spec = target.param_spec(target.build(meta["arch"]))
     descriptions = json.load(open(a.descriptions)) if a.descriptions else None
     class_emb = embed_names(meta["names"], dev, ensemble=a.prompt_ensemble, descriptions=descriptions)
-    semantic_W, semantic_info = None, None
+    semantic_W, semantic_info, row_table, nb = None, None, None, None
     if a.semantic_prior:
         rows = target.head_rows(meta["arch"], flat)                          # (N, K, F+1)
         valid_rows = classes >= 0
         cls_ids = classes[valid_rows]
         semantic_W, semantic_info = target.fit_semantic_prior(class_emb[cls_ids.to(dev)].cpu(), rows[valid_rows].float(),
                                                               cls_ids)
+        if a.neighbors:
+            from .neighbors import class_row_table, fit_blend
+            store = json.load(open(a.neighbors))
+            row_table = class_row_table(rows, classes, len(meta["names"]))
+            val_ids = [meta["names"].index(n) for n in store.get("val_classes", []) if n in meta["names"]]
+            nb = fit_blend(class_emb.cpu(), rows[valid_rows], cls_ids, row_table, semantic_info["lambda"],
+                           val_ids, store.get("val", {}), meta["names"], sorted(set(cls_ids.tolist())))
+            if nb is None:
+                print("neighbours: too few validation answers, not used")
+            else:
+                nb["store"] = {**store.get("val", {}), **store.get("holdout", {})}
+                print(f"neighbour blend (cross-validated on known classes treated as new; auto = {nb['auto']}):")
+                for k_, v_ in nb["cv"].items():
+                    print(f"   {k_}: {v_}")
         prior = class_emb[classes.clamp_min(0).to(dev)].cpu() @ semantic_W   # (N, K, F+1)
         prior = prior * valid_rows[..., None]
         flat = target.add_head_rows(meta["arch"], flat, prior, sign=-1.0)    # train on the correction only
         print(f"semantic prior: {semantic_info}")
+    # known-class gate: just above the closest pair of different training classes, so a training class
+    # is recognised only by (almost) its own name
+    train_ids = sorted(set(classes[classes >= 0].tolist()))
+    S = class_emb[train_ids] @ class_emb[train_ids].T
+    S.fill_diagonal_(-1)
+    gate = round(min(0.999, max(0.98, S.max().item() + 0.005)), 4)
+    print(f"known-class gate: {gate} (closest pair of training classes {S.max().item():.4f})")
     tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
     clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
@@ -144,7 +167,7 @@ def main():
                     "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
                     "descriptions": descriptions,
                     "semantic_prior_W": semantic_W, "semantic_prior_info": semantic_info,
-                    "train_classes": sorted(set(classes[classes >= 0].tolist())),
+                    "train_classes": train_ids, "gate": gate, "row_table": row_table, "neighbors": nb,
                     "step": step}, a.out)
 
     flags = {"stop": False, "snapshot": False}
