@@ -185,8 +185,10 @@ class T2VGenerator(nn.Module):
         h = h + self.xattn(self.xnorm(h), c, c, need_weights=False)[0]
         return self.proto_out(h)
 
-    def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None):
-        """x0 (B,T,D) normalised tokens, valid (T,D), row_valid (B,T) -> eps-prediction MSE."""
+    def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None, min_snr=0.0):
+        """x0 (B,T,D) normalised tokens, valid (T,D), row_valid (B,T) -> denoising MSE.
+        min_snr > 0 applies Min-SNR-gamma weighting (Hang et al., 2023), which down-weights the very
+        noisy timesteps where the target is unpredictable and speeds up convergence."""
         proto = self.prototypes(emb, cls_mask)
         sel = row_valid.nonzero()
         if tokens_per_step and len(sel) > tokens_per_step:
@@ -198,7 +200,14 @@ class T2VGenerator(nn.Module):
         noise = torch.randn_like(x)
         pred = self.denoiser(ab.sqrt() * x + (1 - ab).sqrt() * noise, step, p)
         target = x if self.config["pred"] == "x0" else noise
-        return (((pred.float() - target) ** 2) * vm).sum() / vm.sum()
+        err = (((pred.float() - target) ** 2) * vm).sum(-1)
+        if min_snr > 0:
+            snr = (ab / (1 - ab)).squeeze(-1)
+            w = snr.clamp(max=min_snr) / min_snr          # x0-prediction form
+            if self.config["pred"] != "x0":
+                w = w * min_snr / snr.clamp(min=1e-8)     # eps-prediction form: min(snr, g) / snr
+            err = err * w
+        return err.sum() / vm.sum()
 
     @torch.no_grad()
     def sample(self, emb, cls_mask, steps=100, chunk=4096, clip="auto"):

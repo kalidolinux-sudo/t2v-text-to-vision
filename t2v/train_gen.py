@@ -73,6 +73,8 @@ def main():
     p.add_argument("--prompt_ensemble", action="store_true", help="average CLIP embeddings over several templates")
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
+    p.add_argument("--fp16", action="store_true", help="fp16 autocast + loss scaling (for T4/V100-class GPUs)")
+    p.add_argument("--min_snr", type=float, default=0.0, help="Min-SNR-gamma loss weighting, e.g. 5; 0 = off")
     p.add_argument("--log_every", type=int, default=100)
     p.add_argument("--save_every", type=int, default=1000,
                    help="checkpoint period; also: kill -USR1 <pid> saves now, Ctrl-C / kill saves and stops")
@@ -110,6 +112,9 @@ def main():
     if a.ema > 0:
         ema = {k: v.detach().clone() for k, v in gen.state_dict().items()}
     flat = flat.pin_memory() if dev.startswith("cuda") else flat
+    use_fp16 = a.fp16 and dev.startswith("cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=use_fp16)
+    amp_dtype = torch.float16 if use_fp16 else torch.bfloat16
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
 
     def save(step):
@@ -135,13 +140,15 @@ def main():
         if a.emb_noise > 0:
             emb = torch.nn.functional.normalize(emb + a.emb_noise * torch.randn_like(emb), dim=-1)
         row_valid = (tok.slots[None] < 0) | (tok.slots[None] < k[:, None])
-        with torch.autocast(device_type="cuda" if dev.startswith("cuda") else "cpu", dtype=torch.bfloat16,
-                            enabled=a.bf16):
-            loss = gen.loss(x0, tok.valid, emb, mask, row_valid, a.tokens_per_step)
+        with torch.autocast(device_type="cuda" if dev.startswith("cuda") else "cpu", dtype=amp_dtype,
+                            enabled=a.bf16 or use_fp16):
+            loss = gen.loss(x0, tok.valid, emb, mask, row_valid, a.tokens_per_step, a.min_snr)
         opt.zero_grad(set_to_none=True)
-        loss.backward()
+        scaler.scale(loss).backward()
+        scaler.unscale_(opt)
         torch.nn.utils.clip_grad_norm_(gen.parameters(), 1.0)
-        opt.step()
+        scaler.step(opt)
+        scaler.update()
         sched.step()
         if ema is not None:
             with torch.no_grad():
