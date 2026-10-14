@@ -60,7 +60,8 @@ def main():
     p.add_argument("--denoiser", default="conv", choices=["conv", "mlp"])
     p.add_argument("--mlp_hidden", type=int, default=512)
     p.add_argument("--mlp_depth", type=int, default=3)
-    p.add_argument("--norm", default="tensor", choices=["tensor", "element"], help="body weight normalisation")
+    p.add_argument("--norm", default="tensor", choices=["tensor", "element", "zscore"],
+                   help="body weight normalisation (zscore recommended for BatchNorm nets like ResNet)")
     p.add_argument("--pred", default="x0", choices=["x0", "eps"], help="denoiser target (x0 = Tina/G.pt signal prediction)")
     p.add_argument("--steps", type=int, default=20000)
     p.add_argument("--bs", type=int, default=32)
