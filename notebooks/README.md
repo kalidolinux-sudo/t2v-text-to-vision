@@ -1,5 +1,9 @@
 # Notebooks
 
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kalidolinux-sudo/t2v-text-to-vision/blob/main/notebooks/T2V_demo.ipynb)
+**[`T2V_demo.ipynb`](T2V_demo.ipynb)** is the interactive demo: text → generated vision model → accuracy on
+real ImageNet photos → the full app on a public link. *Runtime → Run all*; a few minutes, GPU optional.
+
 Each `.py` file is one Google Colab cell: paste it into a cell and run it. The cells bundle the code they
 need, so they work without cloning the repository, and none of them contains an API key.
 

@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://colab.research.google.com/github/kalidolinux-sudo/t2v-text-to-vision/blob/main/notebooks/T2V_demo.ipynb"><img alt="Open in Colab" src="https://colab.research.google.com/assets/colab-badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB.svg">
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-CUDA%20%7C%20CPU%20%7C%20ROCm%20build-EE4C2C.svg">
@@ -135,6 +136,11 @@ The full history (CIFAR-100 prototypes, every version, bug and negative result) 
 
 ## Quick start
 
+**Fastest: [open the demo notebook in Colab](https://colab.research.google.com/github/kalidolinux-sudo/t2v-text-to-vision/blob/main/notebooks/T2V_demo.ipynb)** (`notebooks/T2V_demo.ipynb`), choose
+*Runtime → Run all*. It downloads T2V-1K, generates a classifier from your text, tests it on real
+ImageNet photos and opens the full app on a public link. No installation; the AMD TokenFactory key is
+optional (Colab secret `TOKENFACTORY_API_KEY`).
+
 The ImageNet-1k generator `t2v_1k.pt` (198 MB) is attached to the
 [T2V-1K release](https://github.com/kalidolinux-sudo/t2v-text-to-vision/releases/tag/1.0) as
 `t2v_1k.zip`; the app downloads and unpacks it into `checkpoints/` on first start. The CIFAR-100
@@ -225,7 +231,7 @@ t2v/                    the package
   llm.py describe.py neighbors.py   the TokenFactory agent: parse, describe, analogise
 app.py  Dockerfile      Gradio demo; CPU or ROCm container
 data/                   ImageNet-1k names and split; TokenFactory descriptions and analogies
-notebooks/              one-cell Colab runs (see notebooks/README.md)
+notebooks/              Colab demo notebook (T2V_demo.ipynb) and one-cell Colab runs
 results/                logs and diagnostics of the T2V-1K run
 docs/                   experiment log and architecture diagram
 checkpoints/            CIFAR-100 generator (the ImageNet-1k one comes from the release)
