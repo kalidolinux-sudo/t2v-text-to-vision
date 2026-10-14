@@ -146,7 +146,8 @@ def main():
     p.add_argument("--prompt", help="free text in any language, or a comma-separated class list")
     p.add_argument("--image_dir", help="instead of text: one sub-folder of example photos per class (Tina's image prompts)")
     p.add_argument("--out", default="out/generated")
-    p.add_argument("--steps", type=int, default=20)
+    p.add_argument("--steps", type=int, default=5, help="DDIM steps (5 beat 10 and 20 on ResNet-20)")
+    p.add_argument("--average", type=int, default=1, help="average this many samples into one model")
     p.add_argument("--device", default="auto")
     a = p.parse_args()
     dev = pick_device(a.device)
@@ -164,8 +165,8 @@ def main():
     else:
         raise SystemExit("give --prompt or --image_dir")
     t0 = time.time()
-    flat = generate_flat(gen, tok, classes, steps=a.steps, emb=emb,
-                         descriptions=(info.get("descriptions") if a.prompt else None))[0]
+    flat = generate_flat(gen, tok, classes, n=a.average, steps=a.steps, emb=emb,
+                         descriptions=(info.get("descriptions") if a.prompt else None)).mean(0)
     dt = time.time() - t0
     model = build_model(ck["arch"], flat, len(classes))
     onnx_path = export(model, classes, ck["arch"], a.out)

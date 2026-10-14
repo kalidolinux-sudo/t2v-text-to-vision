@@ -134,6 +134,37 @@ Two runs were not separated: the joint transformer and the descriptions were add
 small CNN, descriptions alone gave +0.9 points on fully unseen classes (34.8% → 35.7%, 60 tasks), which
 is within noise.
 
+### Component analysis: fewer sampling steps are better *and* faster
+
+Profiling (`python -m t2v.profile`, ResNet-20 layout) shows that almost all generation time is spent in
+the per-step modules. The joint transformer has 37% of the parameters and takes 52% of the time, and
+the per-token denoiser has 37% and takes 45%. So the step count is the main speed lever. Sweeping it
+on the trained v6b generator (30 tasks per test, T4) gave:
+
+| v6b sampling | Seen | Half unseen | All unseen | s/model |
+|---|---|---|---|---|
+| 20 steps fp32 | 79.9% | 52.6% | 40.3% | 0.218 |
+| 10 steps fp32 | 81.5% | 55.3% | 42.1% | 0.112 |
+| **5 steps fp16** | **88.4%** | **60.9%** | **46.7%** | **0.057** |
+| Oracle (fine-tuned) | 89.3% | 79.8% | 78.3% | n/a |
+
+At 5 steps the generated ResNet-20 matches a fine-tuned one on seen classes and beats classifier
+selection (85.9%), at a quarter of the cost. A likely reason is that the early x0 estimates sit close
+to the conditional mean of the weights, and later steps add sample-specific detail that classification
+does not need. The default is now 5 steps.
+
+Ablations on the same zoo, at 20 steps:
+
+| Run | Seen | Half unseen | All unseen |
+|---|---|---|---|
+| v4b | 80.3% | 44.5% | 34.0% |
+| + descriptions only | 83.1% | 50.2% | 37.3% |
+| + descriptions + joint transformer (v6b) | 79.9% | 52.6% | 40.3% |
+| + descriptions + lite joint (2 layers, 1-layer class encoder) | 80.6% | 42.3% | 38.6% |
+
+The descriptions help on every test. The joint transformer helps on unseen classes, and the lite
+variant is not worth it.
+
 ## Run it
 
 ```bash

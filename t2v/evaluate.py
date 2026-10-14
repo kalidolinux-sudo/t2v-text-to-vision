@@ -31,6 +31,8 @@ def main():
     p.add_argument("--steps", type=int, default=100)
     p.add_argument("--device", default="auto")
     p.add_argument("--fp16", action="store_true", help="fp16 sampling on GPU")
+    p.add_argument("--average", type=int, default=1,
+                   help="average the weights of this many generated samples into one model")
     p.add_argument("--out", default="runs/eval.json")
     a = p.parse_args()
 
@@ -59,8 +61,10 @@ def main():
             cls = [c for c in classes[i].tolist() if c >= 0]
             xt, yt = data.subset(cls, train=False)
             t0 = time.time()
-            flats = generate_flat(gen, tok, cls, n=a.samples, steps=a.steps, emb=class_emb[cls],
+            flats = generate_flat(gen, tok, cls, n=a.samples * a.average, steps=a.steps, emb=class_emb[cls],
                                   prior_emb=zs_emb[cls], arch=arch, amp=a.fp16)
+            if a.average > 1:  # the samples share the zoo's layout, so their mean is a sharper estimate
+                flats = flats.view(a.samples, a.average, -1).mean(1)
             if dev.startswith("cuda"):
                 torch.cuda.synchronize()
             gen_time += time.time() - t0
