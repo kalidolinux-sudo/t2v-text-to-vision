@@ -26,7 +26,7 @@
 
 **Contents:** [Results](#t2v-1k-results-on-imagenet-1k) · [How it works](#how-it-works) ·
 [Quick start](#quick-start) · [Reproduce](#reproduce) · [Command-line pipeline](#command-line-pipeline) ·
-[Repository layout](#repository-layout) · [Limitations](#limitations) · [References](#references)
+[Repository layout](#repository-layout) · [Limitations](#limitations) · [References](#references) · [How this was built](#how-this-was-built)
 
 ## T2V-1K: results on ImageNet-1k
 
@@ -80,14 +80,21 @@ all.
   generator was trained on, and it adds 4.2 points on the hard split. Its threshold (0.9947) is set
   automatically just above the closest pair of different training classes.
 
-### Where AMD comes in
+### The role of AMD
 
-- **AMD TokenFactory** is the agent's reasoning core, in the product and at build time. It parses each
-  request, writes visual descriptions of new classes on the fly, and picks visual analogies for names
-  it has not seen before. It also wrote the descriptions and analogies shipped in `data/`.
-- **Training** of the zoo and the generator ran once, on a Google Colab T4, in 72 minutes
-  (`notebooks/t2v_colab_final_imagenet.py`). The code also runs on AMD GPUs with ROCm PyTorch
-  (`--bf16` for MI300X, and a ROCm build of the Docker image).
+**AMD TokenFactory is the reasoning core of T2V.** The diffusion model only knows how to turn class
+embeddings into weights; everything that makes it an agent runs on TokenFactory (DeepSeek-V4-Flash), both
+in the product and when the system was built:
+
+| What TokenFactory does | Without it | Measured effect |
+|---|---|---|
+| **Understands** a free-form request in any language and turns it into class names | only comma-separated English class lists work | Arabic request → 85.0% on real CIFAR-100 photos (stage 1) |
+| **Describes** every class visually (5 descriptions × 1,000 ImageNet classes, and live for new names) | the condition is the bare class name | +2.8 to +5.7 points (CIFAR-100 ResNet-20 ablation) |
+| **Analogises**: picks the known classes a never-seen class looks like | rows of new classes come from text alone | +2.4 points on new ImageNet classes over the ridge prior |
+
+The zoo and the generator were trained once, on a Google Colab T4, in 72 minutes
+(`notebooks/t2v_colab_final_imagenet.py`). The code runs unchanged on AMD GPUs with ROCm PyTorch (`--bf16`
+for Instinct MI300X, and a ROCm build of the Docker image).
 
 ## How it works
 
@@ -235,6 +242,19 @@ tests/                  unit tests (pytest, CPU, no downloads)
   [arXiv:2209.12892](https://arxiv.org/abs/2209.12892)
 - S. Pratt et al. *What does a platypus look like? Generating customized prompts for zero-shot image
   classification* (CuPL). [arXiv:2209.03320](https://arxiv.org/abs/2209.03320)
+
+## How this was built
+
+T2V was built by its author with the help of AI assistants, and every result in this repository comes
+from code that was actually run (logs in [`results/`](results/)):
+
+- **Gemini** (Google, latest thinking version) helped shape the experiments and with research: reading
+  the parameter-generation literature (Tina, RPG, G.pt) and planning the ablations.
+- **Claude** (Anthropic) helped write the code and the documentation.
+- **The author** directed the project, ran the training on Google Colab, and reviewed the code, the
+  experiments and the claims made here.
+- **AMD TokenFactory** (DeepSeek-V4-Flash) is part of the system itself, as described
+  [above](#the-role-of-amd).
 
 ## License
 
