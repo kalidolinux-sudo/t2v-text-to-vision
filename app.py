@@ -17,13 +17,40 @@ from t2v.llm import parse_classes
 from t2v.zoo import pick_device
 
 
+RELEASE_URL = "https://github.com/kalidolinux-sudo/t2v-text-to-vision/releases/download/1.0/t2v_1k.zip"
+FALLBACK = "checkpoints/t2v_tinacnn_cifar100.pt"
+
+
+def download(url, path):
+    """Fetch a checkpoint (.pt, or a .zip holding one) to `path`."""
+    import requests
+    import zipfile
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".part"
+    print(f"downloading {url} ...", flush=True)
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        with open(tmp, "wb") as f:
+            for chunk in r.iter_content(1 << 20):
+                f.write(chunk)
+    if url.endswith(".zip"):
+        with zipfile.ZipFile(tmp) as z:
+            member = next(m for m in z.namelist() if m.endswith(".pt"))
+            with z.open(member) as src, open(path, "wb") as dst:
+                while chunk := src.read(1 << 20):
+                    dst.write(chunk)
+        os.remove(tmp)
+    else:
+        os.replace(tmp, path)
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--ckpt", default=os.environ.get("T2V_CKPT", "checkpoints/t2v_tinacnn_cifar100.pt"))
+    p.add_argument("--ckpt", default=os.environ.get("T2V_CKPT", "checkpoints/t2v_1k.pt"))
     p.add_argument("--hf_repo", default=os.environ.get("T2V_HF_REPO"),
                    help="Hugging Face model repo to download --ckpt from when it is not on disk (e.g. user/t2v-1k)")
-    p.add_argument("--ckpt_url", default=os.environ.get("T2V_CKPT_URL"),
-                   help="URL to download --ckpt from when it is not on disk (e.g. a GitHub release asset)")
+    p.add_argument("--ckpt_url", default=os.environ.get("T2V_CKPT_URL", RELEASE_URL),
+                   help="URL (.pt or .zip) to download --ckpt from when it is not on disk; default: the T2V-1K release")
     p.add_argument("--device", default="auto")
     p.add_argument("--share", action="store_true")
     p.add_argument("--port", type=int, default=7860)
@@ -32,18 +59,16 @@ def main():
     if not os.path.exists(a.ckpt) and a.hf_repo:
         from huggingface_hub import hf_hub_download
         a.ckpt = hf_hub_download(a.hf_repo, os.path.basename(a.ckpt))
-    if not os.path.exists(a.ckpt) and a.ckpt_url:  # e.g. a GitHub release asset
-        import requests
-        os.makedirs(os.path.dirname(a.ckpt) or ".", exist_ok=True)
-        print(f"downloading {a.ckpt_url} -> {a.ckpt}")
-        with requests.get(a.ckpt_url, stream=True, timeout=60) as r:
-            r.raise_for_status()
-            with open(a.ckpt, "wb") as f:
-                for chunk in r.iter_content(1 << 20):
-                    f.write(chunk)
+    if not os.path.exists(a.ckpt) and a.ckpt_url:
+        try:
+            download(a.ckpt_url, a.ckpt)
+        except Exception as e:  # offline: fall back to the small generator shipped in the repository
+            print(f"could not download {a.ckpt_url} ({e})")
     if not os.path.exists(a.ckpt):
-        raise SystemExit(f"{a.ckpt} not found: download it from the repository's Releases into checkpoints/, "
-                         "or set T2V_CKPT_URL / T2V_HF_REPO")
+        if not os.path.exists(FALLBACK):
+            raise SystemExit(f"{a.ckpt} not found: download it from the repository's Releases into checkpoints/")
+        print(f"{a.ckpt} not available, using {FALLBACK}")
+        a.ckpt = FALLBACK
     gen, tok, ck = load_generator(a.ckpt, dev)
     agent = "AMD TokenFactory" if os.environ.get("TOKENFACTORY_API_KEY") else "offline (no TokenFactory key set)"
     state = {}

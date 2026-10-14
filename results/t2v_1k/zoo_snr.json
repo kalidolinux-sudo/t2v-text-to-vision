@@ -1,0 +1,7 @@
+{
+ "moving_params": 148480,
+ "frozen_params": 124912,
+ "noise_var_per_param": 2.206420984745411e-05,
+ "signal_var_per_param": 0.0005904225330209713,
+ "signal_to_noise": 26.759287420804576
+}

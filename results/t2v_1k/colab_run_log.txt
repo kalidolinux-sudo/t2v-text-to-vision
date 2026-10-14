@@ -1,0 +1,116 @@
+Console output of notebooks/t2v_colab_final_imagenet.py on Google Colab (Tesla T4), 14 October 2026.
+Condensed: some progress lines are dropped and repeated fields (generated_best, nan columns) trimmed; numbers unchanged.
+Full files (eval_*.json, diagnose_t2v_1k.json, zoo, checkpoint) were written to Google Drive by the same run.
+
+wrote 16 code files; TokenFactory outputs: descriptions for 1000 classes, visual analogies for 100 new + 100 validation classes
+
+>> nvidia-smi --query-gpu=name,memory.total --format=csv
+name, memory.total [MiB]
+Tesla T4, 15360 MiB
+
+>> /usr/bin/python3 -c "from t2v.data import ImageNet32; d = ImageNet32('data', 'cpu', 260); print(len(d.train_y), 'train /', len(d.test_y), 'test images')"
+  data/train-00000-of-00003.parquet: kept 86840 images
+  data/train-00001-of-00003.parquet: kept 86320 images
+  data/train-00002-of-00003.parquet: kept 86840 images
+  data/validation-00000-of-00001.parquet: kept 50000 images
+260000 train / 50000 test images
+<< done in 77s  (total 2 min)
+
+>> /usr/bin/python3 -m t2v.zoo generic --dataset imagenet32 --per_class 260 --split_file data/imagenet_split.json --arch resnet20 --out /content/drive/MyDrive/t2v_imagenet/zoo --epochs 15 --lr 0.1 --bs 256 --amp
+generic resnet20 on imagenet32: 0.173 test acc over 900 seen classes (49 random + 51 hard held out), 405s
+<< done in 411s  (total 9 min)
+
+model zoo: 4 processes; progress every 2 minutes
+05:07 (11 min) 25/250  mean acc 0.775  0.29 tasks/s | 25/250  mean acc 0.787  0.29 tasks/s | 25/250  mean acc 0.797  0.29 tasks/s | 25/250  mean acc 0.771  0.28 tasks/s
+05:13 (17 min) 150/250  mean acc 0.807  0.33 tasks/s | 125/250  mean acc 0.796  0.31 tasks/s | 150/250  mean acc 0.821  0.34 tasks/s | 125/250  mean acc 0.800  0.32 tasks/s
+05:19 (23 min) 250/250  mean acc 0.803  0.32 tasks/s | 250/250  mean acc 0.803  0.32 tasks/s | 250/250  mean acc 0.814  0.33 tasks/s | 250/250  mean acc 0.807  0.32 tasks/s
+
+test tasks: 4 processes; progress every 2 minutes
+05:29 (33 min) 100/100  mean acc 0.724  0.20 tasks/s | 100/100  mean acc 0.749  0.21 tasks/s | 100/100  mean acc 0.741  0.21 tasks/s | 100/100  mean acc 0.648  0.21 tasks/s
+
+>> /usr/bin/python3 -m t2v.zoo analyze --out /content/drive/MyDrive/t2v_imagenet/zoo --soup 2
+{
+ "moving_params": 148480,
+ "frozen_params": 124912,
+ "noise_var_per_param": 2.206420984745411e-05,
+ "signal_var_per_param": 0.0005904225330209713,
+ "signal_to_noise": 26.759287420804576
+}
+varying tensors (task-to-task variance): {'layers.7.conv1.weight': 2e-06, 'layers.7.bn1.weight': 7.2e-05, 'layers.7.bn1.bias': 3.7e-05, 'layers.7.bn1.running_mean': 0.033856, 'layers.7.bn1.running_var': 0.111309, 'layers.7.conv2.weight': 1e-06, 'layers.7.bn2.weight': 3e-06, 'layers.7.bn2.bias': 2e-06, 'layers.7.bn2.running_mean': 0.00028, 'layers.7.bn2.running_var': 0.000132, 'layers.8.conv1.weight': 1e-06, 'layers.8.bn1.weight': 3.7e-05}
+
+>> /usr/bin/python3 -m t2v.train_gen --zoo .../zoo --out .../t2v_1k.pt --token_size 1024 --d_model 512 --denoiser mlp --mlp_hidden 1024 --joint_layers 4 --bs 32 --tokens_per_step 4096 --steps 6000 --warmup 300 --pred x0 --norm element --head_weight 10 --semantic_prior --descriptions data/descriptions_imagenet.json --neighbors data/neighbors_imagenet.json --prompt_ensemble --emb_noise 0.02 --ema 0.999 --cosine --fp16 --log_every 500 --save_every 1000
+zoo: 1000 p-models x 274,042 params (mean acc 0.807)
+neighbour blend (cross-validated on known classes treated as new; auto = llm):
+   validation_classes: 100
+   ridge_only: {'row_cosine': 0.7124, 'row_retrieval': 0.92}
+   llm_neighbours_only: {'row_cosine': 0.6285, 'row_retrieval': 0.5}
+   ridge+llm (beta 0.3): {'row_cosine': 0.7324, 'row_retrieval': 0.85}
+   ridge+clip_knn (beta 0.2, tau 0.03): {'row_cosine': 0.7287, 'row_retrieval': 0.86}
+semantic prior: {'lambda': 3.0, 'cv_row_cosine_on_held_out_classes': 0.6903263211250306}
+known-class gate: 0.9947 (closest pair of training classes 0.9897)
+tokens per model: 364 x 1024; generator: 49.1M params
+step 500  loss 0.2412  3.6 it/s
+step 1000  loss 0.2231  3.5 it/s
+step 2000  loss 0.2056  3.5 it/s
+step 3000  loss 0.1920  3.5 it/s
+step 4000  loss 0.1791  3.5 it/s
+step 5000  loss 0.1714  3.5 it/s
+step 6000  loss 0.1698  3.5 it/s
+<< done in 1754s  (total 62 min)
+
+>> t2v.evaluate --gate auto --prior auto   (final model)
+[eval_seen] tasks 100  generated_mean 0.700  oracle 0.724  selection 0.693  chance 0.100  seconds_per_model 0.079
+[eval_unseen] tasks 100  generated_mean 0.641  oracle 0.749  chance 0.100  seconds_per_model 0.073
+[eval_novel] tasks 100  generated_mean 0.636  oracle 0.741  chance 0.100  seconds_per_model 0.073
+[eval_novel_hard] tasks 100  generated_mean 0.475  oracle 0.648  chance 0.100  seconds_per_model 0.073
+
+>> t2v.evaluate --gate auto --prior llm
+[eval_unseen] 0.641   [eval_novel] 0.636   [eval_novel_hard] 0.475
+>> t2v.evaluate --gate auto --prior clip
+[eval_unseen] 0.642   [eval_novel] 0.629   [eval_novel_hard] 0.481
+>> t2v.evaluate --gate auto --prior ridge
+[eval_unseen] 0.640   [eval_novel] 0.612   [eval_novel_hard] 0.483
+>> t2v.evaluate --prior ridge   (no known-class gate)
+[eval_unseen] 0.643   [eval_novel] 0.602   [eval_novel_hard] 0.441
+
+>> t2v.diagnose --tasks 50 --steps 5 --fp16 --body_noise 0
+=== eval_seen (50 tasks) ===
+  1_conditioning          right_classes 0.691  wrong_classes 0.093  chance 0.100
+  2_equivariance          original_order 0.691  reversed_order 0.693
+  3_body_vs_head          oracle 0.718 | gen body + gen head 0.691 | gen body + oracle head 0.708 | oracle body + gen head 0.698 | zoo-mean body + gen head 0.693
+  4b_body_vs_mean_model   generated_body_error 0.495  zoo_mean_body_error 0.494
+  6_memorisation_rows     rows_closer_to_a_train_row 0.962
+  8_semantic_head_prior   ridge head + zoo-mean body 0.600 | ridge head + generated body 0.602 | T2V 0.691
+=== eval_novel (50 tasks) ===
+  1_conditioning          right_classes 0.591  wrong_classes 0.100  chance 0.100
+  2_equivariance          original_order 0.591  reversed_order 0.592
+  3_body_vs_head          oracle 0.737 | gen body + gen head 0.591 | gen body + oracle head 0.716 | oracle body + gen head 0.614 | zoo-mean body + gen head 0.593
+  4b_body_vs_mean_model   generated_body_error 0.488  zoo_mean_body_error 0.484
+  6_memorisation_rows     rows_closer_to_a_train_row 0.768
+  7_unseen_classes        recall_vs_similarity_correlation -0.236 | far from seen 0.645 | close to seen 0.537
+  8_semantic_head_prior   ridge head + zoo-mean body 0.594 | ridge head + generated body 0.595 | T2V 0.591
+=== eval_novel_hard (50 tasks) ===
+  1_conditioning          right_classes 0.426  wrong_classes 0.095  chance 0.100
+  2_equivariance          original_order 0.426  reversed_order 0.431
+  3_body_vs_head          oracle 0.633 | gen body + gen head 0.426 | gen body + oracle head 0.599 | oracle body + gen head 0.444 | zoo-mean body + gen head 0.429
+  4b_body_vs_mean_model   generated_body_error 0.507  zoo_mean_body_error 0.504
+  6_memorisation_rows     rows_closer_to_a_train_row 0.634
+  7_unseen_classes        recall_vs_similarity_correlation -0.026 | far from seen 0.417 | close to seen 0.434
+  8_semantic_head_prior   ridge head + zoo-mean body 0.467 | ridge head + generated body 0.462 | T2V 0.426
+
+>> t2v.generate --prompt 'great white shark, banjo, cello, koala, ostrich, pizza'
+generated 274,042 parameters for a resnet20 in 1.72s
+
+======================================================================================
+T2V-1K: 274,042 ResNet-20 parameters generated from text in 0.079 s; ImageNet-1k 32x32, 100 tasks per split, 10 classes each
+                                   seen classes     half new      all new   all new, hard
+T2V-1K (final)                            0.700        0.641        0.636        0.475
+  prior: TokenFactory analogies             nan        0.641        0.636        0.475
+  prior: CLIP neighbours                    nan        0.642        0.629        0.481
+  prior: ridge only                         nan        0.640        0.612        0.483
+  no known-class gate                       nan        0.643        0.602        0.441
+oracle (fine-tuned on images)             0.724        0.749        0.741        0.648
+selection (generic head)                  0.693          nan          nan          nan
+chance                                    0.100        0.100        0.100        0.100
+======================================================================================
+total time 72 min

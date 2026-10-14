@@ -34,6 +34,8 @@ The oracle is a ResNet-20 actually fine-tuned on the images of each task.
 | All classes never seen | **63.6%** | 74.1% | 86% | 10% |
 | All never seen, whole groups held out | **47.5%** | 64.8% | 73% | 10% |
 
+The run's console log and zoo statistics are in [`results/t2v_1k/`](results/t2v_1k/).
+
 One full ResNet-20 takes **0.079 s** to generate (T4, 5 DDIM steps, fp16). Picking rows from the generic
 model's head (Tina's "selection" baseline) scores 69.3% on seen classes and cannot handle new classes at
 all.
@@ -81,17 +83,16 @@ all.
 
 ## Quick start
 
-The trained generators are attached to the repository's **Releases** (GitHub keeps large files out of
-the source tree): `t2v_1k.pt` (ImageNet-1k, 198 MB) and `t2v_tinacnn_cifar100.pt` (CIFAR-100, 30 MB).
-Put them in `checkpoints/`, or set `T2V_CKPT_URL` to the asset's download link and the app fetches it.
+The ImageNet-1k generator `t2v_1k.pt` (198 MB) is attached to the
+[**T2V-1K release**](https://github.com/kalidolinux-sudo/t2v-text-to-vision/releases/tag/1.0) as
+`t2v_1k.zip`. The app downloads and unpacks it into `checkpoints/` on first start. The small CIFAR-100
+generator (`checkpoints/t2v_tinacnn_cifar100.pt`, 30 MB) ships with the code and is used when offline.
 
 ```bash
 # Docker (CPU); the TokenFactory key is passed at run time and never stored in the image
 docker build -t t2v .
-docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... t2v
-# the ImageNet model: put t2v_1k.pt in checkpoints/ or let the app fetch it from Hugging Face
-docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... -e T2V_CKPT=checkpoints/t2v_1k.pt \
-    -e T2V_CKPT_URL=https://github.com/<user>/t2v-text-to-vision/releases/download/v1.0/t2v_1k.pt t2v
+docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... t2v       # fetches t2v_1k.pt from the release
+docker run -p 7860:7860 -e T2V_CKPT=checkpoints/t2v_tinacnn_cifar100.pt t2v   # small CIFAR-100 model
 # AMD GPU: docker build -t t2v --build-arg TORCH_INDEX=https://download.pytorch.org/whl/rocm6.4 .
 ```
 

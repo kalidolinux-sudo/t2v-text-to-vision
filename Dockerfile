@@ -3,8 +3,7 @@
 #   AMD GPU (ROCm):   docker build -t t2v --build-arg TORCH_INDEX=https://download.pytorch.org/whl/rocm6.4 .
 #                     docker run --device=/dev/kfd --device=/dev/dri --group-add video ...
 # Run (the TokenFactory key is passed at run time, never baked into the image):
-#   docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... t2v
-#   docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... -e T2V_CKPT=checkpoints/t2v_1k.pt -e T2V_CKPT_URL=<release asset URL> t2v
+#   docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... t2v   # fetches t2v_1k.pt from the GitHub release on first start
 FROM python:3.11-slim
 ARG TORCH_INDEX=https://download.pytorch.org/whl/cpu
 WORKDIR /app
