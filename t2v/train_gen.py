@@ -160,10 +160,13 @@ def main():
         scaler.update()
         sched.step()
         if ema is not None:
+            # warm the decay up so the average does not keep a share of the random initial weights
+            # (a fixed 0.999 leaves 37% of them after 1,000 steps and 5% after 3,000)
+            decay = min(a.ema, (1 + step) / (10 + step))
             with torch.no_grad():
                 for k, v in gen.state_dict().items():
                     if v.dtype.is_floating_point:
-                        ema[k].lerp_(v, 1 - a.ema)
+                        ema[k].lerp_(v, 1 - decay)
                     else:
                         ema[k].copy_(v)
         run = 0.98 * run + 0.02 * loss.item() if step > 1 else loss.item()
