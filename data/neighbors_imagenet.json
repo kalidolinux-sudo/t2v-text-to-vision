@@ -1,0 +1,1153 @@
+{
+ "holdout": {
+  "leatherback turtle": {
+   "terrapin": 0.4,
+   "mud turtle": 0.3,
+   "box turtle": 0.3
+  },
+  "common iguana": {
+   "green lizard": 0.4,
+   "Komodo dragon": 0.3,
+   "alligator lizard": 0.3
+  },
+  "African crocodile": {
+   "American alligator": 0.6,
+   "gar": 0.2,
+   "water snake": 0.2
+  },
+  "night snake": {
+   "thunder snake": 0.3,
+   "water snake": 0.3,
+   "ringneck snake": 0.4
+  },
+  "red-breasted merganser": {
+   "drake": 0.5,
+   "goose": 0.3,
+   "red-backed sandpiper": 0.2
+  },
+  "great white shark": {
+   "barracouta": 0.4,
+   "submarine": 0.3,
+   "missile": 0.3
+  },
+  "tiger shark": {
+   "barracouta": 0.4,
+   "sea snake": 0.3,
+   "gar": 0.3
+  },
+  "hammerhead": {
+   "hammer": 0.4,
+   "hatchet": 0.3,
+   "barracouta": 0.3
+  },
+  "ostrich": {
+   "flamingo": 0.4,
+   "vulture": 0.3,
+   "goose": 0.3
+  },
+  "loggerhead": {
+   "box turtle": 0.4,
+   "mud turtle": 0.3,
+   "terrapin": 0.3
+  },
+  "Persian cat": {
+   "Angora": 0.4,
+   "tabby": 0.3,
+   "Egyptian cat": 0.3
+  },
+  "leopard": {
+   "cheetah": 0.5,
+   "snow leopard": 0.3,
+   "cougar": 0.2
+  },
+  "jaguar": {
+   "cheetah": 0.5714285714285715,
+   "cougar": 0.4285714285714286
+  },
+  "lion": {
+   "cougar": 0.5,
+   "tabby": 0.3,
+   "chow": 0.2
+  },
+  "tiger": {
+   "tabby": 0.4,
+   "cougar": 0.3,
+   "red fox": 0.3
+  },
+  "dugong": {
+   "wombat": 0.3,
+   "beaver": 0.3,
+   "hog": 0.2,
+   "wild boar": 0.2
+  },
+  "sea lion": {
+   "beaver": 0.4,
+   "mink": 0.3,
+   "weasel": 0.3
+  },
+  "Shih-Tzu": {
+   "Lhasa": 0.3,
+   "Pekinese": 0.3,
+   "Maltese dog": 0.2,
+   "Japanese spaniel": 0.2
+  },
+  "Blenheim spaniel": {
+   "Japanese spaniel": 0.3,
+   "cocker spaniel": 0.3,
+   "English springer": 0.2,
+   "Welsh springer spaniel": 0.2
+  },
+  "bluetick": {
+   "Walker hound": 0.3,
+   "beagle": 0.3,
+   "black-and-tan coonhound": 0.2,
+   "bloodhound": 0.2
+  },
+  "American Staffordshire terrier": {
+   "Staffordshire bullterrier": 0.5,
+   "boxer": 0.3,
+   "bull mastiff": 0.2
+  },
+  "Boston bull": {
+   "boxer": 0.4,
+   "Staffordshire bullterrier": 0.3,
+   "French bulldog": 0.3
+  },
+  "Sussex spaniel": {
+   "cocker spaniel": 0.4,
+   "Welsh springer spaniel": 0.3,
+   "English springer": 0.3
+  },
+  "kuvasz": {
+   "Great Pyrenees": 0.5,
+   "Samoyed": 0.3,
+   "white wolf": 0.2
+  },
+  "tiger cat": {
+   "tabby": 0.5,
+   "Egyptian cat": 0.3,
+   "Madagascar cat": 0.2
+  },
+  "water buffalo": {
+   "ox": 0.6,
+   "wild boar": 0.2,
+   "hog": 0.2
+  },
+  "bison": {
+   "ox": 0.7,
+   "wild boar": 0.2,
+   "hog": 0.1
+  },
+  "bighorn": {
+   "ram": 0.8,
+   "ibex": 0.2
+  },
+  "Arabian camel": {
+   "llama": 0.8,
+   "ox": 0.2
+  },
+  "otter": {
+   "mink": 0.4,
+   "weasel": 0.3,
+   "beaver": 0.3
+  },
+  "dragonfly": {
+   "damselfly": 0.6,
+   "fly": 0.3,
+   "cricket": 0.1
+  },
+  "admiral": {
+   "warplane": 0.4,
+   "liner": 0.3,
+   "wing": 0.3
+  },
+  "wood rabbit": {
+   "hare": 0.7,
+   "wallaby": 0.2,
+   "hamster": 0.1
+  },
+  "zebra": {
+   "skunk": 0.4,
+   "badger": 0.3,
+   "gazelle": 0.3
+  },
+  "hippopotamus": {
+   "warthog": 0.625,
+   "wild boar": 0.37499999999999994
+  },
+  "tusker": {
+   "ox": 0.4,
+   "ram": 0.3,
+   "badger": 0.3
+  },
+  "koala": {
+   "teddy": 0.5,
+   "wombat": 0.3,
+   "wallaby": 0.2
+  },
+  "American egret": {
+   "white stork": 0.5714285714285715,
+   "little blue heron": 0.4285714285714286
+  },
+  "grey whale": {
+   "submarine": 0.4,
+   "sea snake": 0.3,
+   "rock beauty": 0.3
+  },
+  "killer whale": {
+   "submarine": 0.4,
+   "giant panda": 0.3,
+   "drake": 0.3
+  },
+  "armadillo": {
+   "isopod": 0.3,
+   "hermit crab": 0.25,
+   "trilobite": 0.2,
+   "ground beetle": 0.15,
+   "snail": 0.1
+  },
+  "orangutan": {
+   "chimpanzee": 0.4,
+   "gibbon": 0.3,
+   "macaque": 0.2,
+   "baboon": 0.1
+  },
+  "gorilla": {
+   "chimpanzee": 0.5,
+   "baboon": 0.3,
+   "macaque": 0.2
+  },
+  "proboscis monkey": {
+   "langur": 0.4,
+   "macaque": 0.3,
+   "baboon": 0.3
+  },
+  "spider monkey": {
+   "howler monkey": 0.4,
+   "spider web": 0.3,
+   "gibbon": 0.3
+  },
+  "puffer": {
+   "bubble": 0.5714285714285715,
+   "nipple": 0.4285714285714286
+  },
+  "accordion": {
+   "organ": 0.4,
+   "radiator": 0.3,
+   "loudspeaker": 0.3
+  },
+  "acoustic guitar": {
+   "pick": 0.4,
+   "loudspeaker": 0.3,
+   "upright": 0.3
+  },
+  "airliner": {
+   "plane": 0.5,
+   "warplane": 0.3,
+   "liner": 0.2
+  },
+  "airship": {
+   "balloon": 0.5,
+   "submarine": 0.3,
+   "plane": 0.2
+  },
+  "squirrel monkey": {
+   "capuchin": 0.4,
+   "marmoset": 0.3,
+   "howler monkey": 0.3
+  },
+  "indri": {
+   "siamang": 0.4,
+   "gibbon": 0.3,
+   "howler monkey": 0.3
+  },
+  "Indian elephant": {
+   "triceratops": 0.5,
+   "ox": 0.3,
+   "hip": 0.2
+  },
+  "African elephant": {
+   "triceratops": 0.5,
+   "ox": 0.3,
+   "baboon": 0.2
+  },
+  "sturgeon": {
+   "gar": 0.4,
+   "barracouta": 0.3,
+   "eel": 0.3
+  },
+  "CD player": {
+   "tape player": 0.4,
+   "cassette player": 0.3,
+   "radio": 0.3
+  },
+  "cello": {
+   "upright": 0.5,
+   "crutch": 0.3,
+   "drum": 0.2
+  },
+  "cliff dwelling": {
+   "cliff": 0.4,
+   "castle": 0.3,
+   "monastery": 0.3
+  },
+  "cornet": {
+   "brass": 0.4,
+   "whistle": 0.3,
+   "bell cote": 0.3
+  },
+  "electric guitar": {
+   "pick": 0.4,
+   "radio": 0.3,
+   "television": 0.3
+  },
+  "flute": {
+   "whistle": 0.4,
+   "chime": 0.3,
+   "file": 0.3
+  },
+  "folding chair": {
+   "crutch": 0.4,
+   "tripod": 0.3,
+   "barber chair": 0.3
+  },
+  "four-poster": {
+   "crib": 0.4,
+   "throne": 0.3,
+   "bookcase": 0.3
+  },
+  "freight car": {
+   "passenger car": 0.4,
+   "trailer truck": 0.3,
+   "electric locomotive": 0.3
+  },
+  "French horn": {
+   "brass": 0.4,
+   "gong": 0.3,
+   "teapot": 0.3
+  },
+  "iron": {
+   "file": 0.4,
+   "pick": 0.3,
+   "hammer": 0.3
+  },
+  "knot": {
+   "coil": 0.4,
+   "bow tie": 0.3,
+   "pretzel": 0.3
+  },
+  "marimba": {
+   "steel drum": 0.4,
+   "chime": 0.3,
+   "drum": 0.3
+  },
+  "mitten": {
+   "sock": 0.4,
+   "wool": 0.3,
+   "running shoe": 0.3
+  },
+  "oboe": {
+   "microphone": 0.4,
+   "whistle": 0.3,
+   "chime": 0.3
+  },
+  "grand piano": {
+   "organ": 0.5,
+   "upright": 0.3,
+   "stage": 0.2
+  },
+  "half track": {
+   "tank": 0.5,
+   "tractor": 0.3,
+   "jeep": 0.2
+  },
+  "hamper": {
+   "shopping basket": 0.4,
+   "crate": 0.3,
+   "bucket": 0.3
+  },
+  "harp": {
+   "upright": 0.4,
+   "organ": 0.3,
+   "loudspeaker": 0.3
+  },
+  "horse cart": {
+   "oxcart": 0.5,
+   "golfcart": 0.3,
+   "barrow": 0.2
+  },
+  "brown bear": {
+   "teddy": 0.4,
+   "sloth bear": 0.3,
+   "timber wolf": 0.3
+  },
+  "American black bear": {
+   "sloth bear": 0.5,
+   "giant panda": 0.3,
+   "teddy": 0.2
+  },
+  "ice bear": {
+   "white wolf": 0.4,
+   "Arctic fox": 0.3,
+   "Eskimo dog": 0.3
+  },
+  "long-horned beetle": {
+   "ground beetle": 0.4,
+   "leaf beetle": 0.3,
+   "rhinoceros beetle": 0.3
+  },
+  "mantis": {
+   "grasshopper": 0.4,
+   "cricket": 0.3,
+   "walking stick": 0.3
+  },
+  "sax": {
+   "brass": 0.4,
+   "drum": 0.3,
+   "stage": 0.3
+  },
+  "shield": {
+   "plate": 0.4,
+   "breastplate": 0.3,
+   "gong": 0.3
+  },
+  "shoe shop": {
+   "tobacco shop": 0.3,
+   "bookshop": 0.3,
+   "running shoe": 0.4
+  },
+  "space bar": {
+   "computer keyboard": 0.4,
+   "typewriter keyboard": 0.4,
+   "horizontal bar": 0.2
+  },
+  "sunglasses": {
+   "sunglass": 0.5,
+   "mask": 0.3,
+   "loupe": 0.2
+  },
+  "banjo": {
+   "drum": 0.3,
+   "gong": 0.3,
+   "frying pan": 0.2,
+   "racket": 0.1,
+   "paddle": 0.1
+  },
+  "barrel": {
+   "drum": 0.4,
+   "bucket": 0.2,
+   "tub": 0.2,
+   "milk can": 0.1,
+   "rain barrel": 0.1
+  },
+  "bassoon": {
+   "rifle": 0.3,
+   "crutch": 0.2,
+   "broom": 0.2,
+   "vacuum": 0.1,
+   "cannon": 0.1,
+   "whistle": 0.1
+  },
+  "canoe": {
+   "paddle": 0.4,
+   "catamaran": 0.2,
+   "lifeboat": 0.2,
+   "speedboat": 0.1,
+   "tub": 0.1
+  },
+  "car mirror": {
+   "sunglass": 0.3,
+   "loupe": 0.2,
+   "reflex camera": 0.2,
+   "plate": 0.1,
+   "screen": 0.1,
+   "monitor": 0.1
+  },
+  "panpipe": {
+   "organ": 0.4,
+   "chime": 0.3,
+   "harmonica": 0.3
+  },
+  "parking meter": {
+   "pole": 0.4,
+   "pay-phone": 0.3,
+   "vending machine": 0.3
+  },
+  "plow": {
+   "snowplow": 0.5,
+   "shovel": 0.3,
+   "tractor": 0.2
+  },
+  "rocking chair": {
+   "barber chair": 0.4,
+   "cradle": 0.3,
+   "swing": 0.3
+  },
+  "safety pin": {
+   "nail": 0.4,
+   "hook": 0.3,
+   "buckle": 0.3
+  },
+  "tray": {
+   "plate": 0.6,
+   "tub": 0.2,
+   "desk": 0.2
+  },
+  "trombone": {
+   "brass": 0.5,
+   "whistle": 0.3,
+   "chime": 0.2
+  },
+  "violin": {
+   "bow": 0.5,
+   "wooden spoon": 0.3,
+   "crutch": 0.2
+  },
+  "yawl": {
+   "schooner": 0.5,
+   "catamaran": 0.3,
+   "lifeboat": 0.2
+  },
+  "sandbar": {
+   "seashore": 0.5,
+   "lakeside": 0.3,
+   "coral reef": 0.2
+  }
+ },
+ "val": {
+  "trolleybus": {
+   "streetcar": 0.4,
+   "school bus": 0.3,
+   "minibus": 0.3
+  },
+  "Labrador retriever": {
+   "golden retriever": 0.5,
+   "flat-coated retriever": 0.3,
+   "Eskimo dog": 0.2
+  },
+  "coffee mug": {
+   "cup": 0.5,
+   "teapot": 0.3,
+   "espresso": 0.2
+  },
+  "projectile": {
+   "missile": 0.4,
+   "cannon": 0.3,
+   "rifle": 0.3
+  },
+  "trimaran": {
+   "catamaran": 0.5,
+   "speedboat": 0.3,
+   "lifeboat": 0.2
+  },
+  "fountain pen": {
+   "quill": 0.4,
+   "ballpoint": 0.3,
+   "letter opener": 0.3
+  },
+  "wreck": {
+   "warplane": 0.4,
+   "tank": 0.3,
+   "passenger car": 0.3
+  },
+  "buckeye": {
+   "acorn": 0.7142857142857143,
+   "fig": 0.28571428571428575
+  },
+  "drumstick": {
+   "wooden spoon": 0.4,
+   "maraca": 0.3,
+   "paintbrush": 0.3
+  },
+  "Irish terrier": {
+   "Lakeland terrier": 0.4,
+   "Airedale": 0.3,
+   "wire-haired fox terrier": 0.3
+  },
+  "vulture": {
+   "bald eagle": 0.4,
+   "albatross": 0.3,
+   "crane": 0.3
+  },
+  "Siberian husky": {
+   "malamute": 0.4,
+   "Eskimo dog": 0.3,
+   "white wolf": 0.3
+  },
+  "orange": {
+   "basketball": 0.4,
+   "tennis ball": 0.3,
+   "ping-pong ball": 0.3
+  },
+  "padlock": {
+   "combination lock": 1.0
+  },
+  "necklace": {
+   "chain": 0.6,
+   "bib": 0.2,
+   "buckle": 0.2
+  },
+  "Saint Bernard": {
+   "Bernese mountain dog": 0.4,
+   "Great Pyrenees": 0.3,
+   "Newfoundland": 0.3
+  },
+  "crib": {
+   "cradle": 0.7,
+   "bassinet": 0.3
+  },
+  "snorkel": {
+   "mask": 0.625,
+   "scuba diver": 0.37499999999999994
+  },
+  "cockroach": {
+   "ground beetle": 0.4,
+   "cricket": 0.3,
+   "leaf beetle": 0.3
+  },
+  "harvestman": {
+   "barn spider": 0.3,
+   "garden spider": 0.25,
+   "wolf spider": 0.2,
+   "tick": 0.15,
+   "ground beetle": 0.1
+  },
+  "unicycle": {
+   "tricycle": 0.4,
+   "mountain bike": 0.3,
+   "bicycle-built-for-two": 0.2,
+   "moped": 0.1
+  },
+  "chickadee": {
+   "junco": 0.4,
+   "goldfinch": 0.3,
+   "robin": 0.2,
+   "quail": 0.1
+  },
+  "iPod": {
+   "cellular telephone": 0.4,
+   "remote control": 0.3,
+   "tape player": 0.2,
+   "cassette player": 0.1
+  },
+  "trench coat": {
+   "fur coat": 0.3,
+   "lab coat": 0.25,
+   "military uniform": 0.2,
+   "cloak": 0.15,
+   "cardigan": 0.1
+  },
+  "bottlecap": {
+   "beer bottle": 0.3,
+   "pop bottle": 0.3,
+   "pill bottle": 0.2,
+   "lens cap": 0.2
+  },
+  "bull mastiff": {
+   "boxer": 0.3,
+   "Staffordshire bullterrier": 0.3,
+   "Rottweiler": 0.2,
+   "Great Dane": 0.2
+  },
+  "table lamp": {
+   "lampshade": 0.4,
+   "candle": 0.2,
+   "vase": 0.2,
+   "pedestal": 0.2
+  },
+  "cricket": {
+   "grasshopper": 0.5,
+   "ground beetle": 0.3,
+   "weevil": 0.2
+  },
+  "tile roof": {
+   "thatch": 0.4,
+   "stone wall": 0.3,
+   "patio": 0.3
+  },
+  "hare": {
+   "mouse": 0.3,
+   "weasel": 0.25,
+   "gazelle": 0.2,
+   "wallaby": 0.15,
+   "tabby": 0.1
+  },
+  "mousetrap": {
+   "mouse": 0.5,
+   "crate": 0.3,
+   "packet": 0.2
+  },
+  "patas": {
+   "titi": 0.4,
+   "mouse": 0.3,
+   "sock": 0.3
+  },
+  "letter opener": {
+   "fountain pen": 0.4,
+   "quill": 0.3,
+   "envelope": 0.3
+  },
+  "promontory": {
+   "cliff": 0.5,
+   "seashore": 0.3,
+   "rock beauty": 0.2
+  },
+  "banded gecko": {
+   "alligator lizard": 0.4,
+   "green lizard": 0.3,
+   "Gila monster": 0.3
+  },
+  "macaque": {
+   "baboon": 0.4,
+   "langur": 0.3,
+   "capuchin": 0.3
+  },
+  "bolo tie": {
+   "bow tie": 0.4,
+   "necklace": 0.3,
+   "Windsor tie": 0.3
+  },
+  "robin": {
+   "partridge": 0.4,
+   "quail": 0.3,
+   "magpie": 0.3
+  },
+  "king penguin": {
+   "albatross": 0.4,
+   "pelican": 0.3,
+   "goose": 0.3
+  },
+  "typewriter keyboard": {
+   "computer keyboard": 0.5,
+   "laptop": 0.3,
+   "desktop computer": 0.2
+  },
+  "balloon": {
+   "bubble": 0.4,
+   "parachute": 0.3,
+   "plastic bag": 0.3
+  },
+  "radio": {
+   "tape player": 0.4,
+   "cassette player": 0.3,
+   "loudspeaker": 0.3
+  },
+  "liner": {
+   "container ship": 0.4,
+   "speedboat": 0.3,
+   "warplane": 0.3
+  },
+  "saltshaker": {
+   "cocktail shaker": 0.4,
+   "pill bottle": 0.3,
+   "water bottle": 0.3
+  },
+  "tree frog": {
+   "tailed frog": 0.4,
+   "bullfrog": 0.3,
+   "green lizard": 0.3
+  },
+  "book jacket": {
+   "comic book": 0.3,
+   "notebook": 0.25,
+   "file": 0.2,
+   "menu": 0.15,
+   "packet": 0.1
+  },
+  "beagle": {
+   "Walker hound": 0.3,
+   "basset": 0.25,
+   "bloodhound": 0.2,
+   "English foxhound": 0.15,
+   "Labrador retriever": 0.1
+  },
+  "magpie": {
+   "jay": 0.4,
+   "chickadee": 0.3,
+   "vulture": 0.2,
+   "bald eagle": 0.1
+  },
+  "microwave": {
+   "toaster": 0.3,
+   "refrigerator": 0.25,
+   "stove": 0.2,
+   "television": 0.15,
+   "monitor": 0.1
+  },
+  "miniature pinscher": {
+   "toy terrier": 0.3,
+   "Doberman": 0.25,
+   "Chihuahua": 0.2,
+   "Italian greyhound": 0.15,
+   "Yorkshire terrier": 0.1
+  },
+  "lab coat": {
+   "apron": 0.4,
+   "vestment": 0.3,
+   "gown": 0.3
+  },
+  "Airedale": {
+   "Irish terrier": 0.4,
+   "wire-haired fox terrier": 0.3,
+   "Lakeland terrier": 0.3
+  },
+  "spindle": {
+   "reel": 0.4,
+   "pole": 0.3,
+   "nail": 0.3
+  },
+  "schipperke": {
+   "Pomeranian": 0.4,
+   "keeshond": 0.3,
+   "affenpinscher": 0.3
+  },
+  "Pembroke": {
+   "clumber": 0.4,
+   "packet": 0.3,
+   "file": 0.3
+  },
+  "rugby ball": {
+   "soccer ball": 0.4,
+   "football helmet": 0.2,
+   "volleyball": 0.2,
+   "basketball": 0.2
+  },
+  "howler monkey": {
+   "gibbon": 0.3,
+   "siamang": 0.3,
+   "macaque": 0.2,
+   "baboon": 0.2
+  },
+  "buckle": {
+   "purse": 0.2,
+   "wallet": 0.2,
+   "necklace": 0.2,
+   "brass": 0.2,
+   "plate": 0.2
+  },
+  "komondor": {
+   "Old English sheepdog": 0.4,
+   "Bouvier des Flandres": 0.3,
+   "giant schnauzer": 0.3
+  },
+  "sports car": {
+   "convertible": 0.4,
+   "racer": 0.3,
+   "passenger car": 0.3
+  },
+  "reflex camera": {
+   "Polaroid camera": 0.4,
+   "loupe": 0.3,
+   "lens cap": 0.3
+  },
+  "tub": {
+   "bathtub": 0.5,
+   "bucket": 0.3,
+   "mixing bowl": 0.2
+  },
+  "obelisk": {
+   "pedestal": 0.4,
+   "megalith": 0.3,
+   "flagpole": 0.3
+  },
+  "can opener": {
+   "corkscrew": 0.4,
+   "letter opener": 0.3,
+   "lighter": 0.3
+  },
+  "school bus": {
+   "minibus": 0.4,
+   "passenger car": 0.3,
+   "recreational vehicle": 0.3
+  },
+  "Welsh springer spaniel": {
+   "English springer": 0.5,
+   "Brittany spaniel": 0.3,
+   "cocker spaniel": 0.2
+  },
+  "coral reef": {
+   "brain coral": 0.4,
+   "sea anemone": 0.3,
+   "rock beauty": 0.3
+  },
+  "hammer": {
+   "hatchet": 0.4,
+   "cleaver": 0.3,
+   "pick": 0.3
+  },
+  "water jug": {
+   "pitcher": 0.4,
+   "whiskey jug": 0.3,
+   "water bottle": 0.3
+  },
+  "caldron": {
+   "pot": 0.4,
+   "Dutch oven": 0.3,
+   "Crock Pot": 0.3
+  },
+  "bow": {
+   "bow tie": 0.5,
+   "rifle": 0.3,
+   "pinwheel": 0.2
+  },
+  "toucan": {
+   "hornbill": 0.5,
+   "macaw": 0.3,
+   "lorikeet": 0.2
+  },
+  "Maltese dog": {
+   "toy poodle": 0.4,
+   "West Highland white terrier": 0.3,
+   "Japanese spaniel": 0.3
+  },
+  "crossword puzzle": {
+   "jigsaw puzzle": 0.6,
+   "comic book": 0.2,
+   "notebook": 0.2
+  },
+  "common newt": {
+   "eft": 0.5,
+   "spotted salamander": 0.3,
+   "axolotl": 0.2
+  },
+  "thunder snake": {
+   "water snake": 0.4,
+   "sea snake": 0.3,
+   "king snake": 0.3
+  },
+  "potter's wheel": {
+   "car wheel": 0.4,
+   "drum": 0.3,
+   "mixing bowl": 0.3
+  },
+  "cup": {
+   "coffee mug": 0.5,
+   "goblet": 0.3,
+   "beer glass": 0.2
+  },
+  "pizza": {
+   "dough": 0.4,
+   "plate": 0.3,
+   "cheeseburger": 0.3
+  },
+  "colobus": {
+   "langur": 0.4,
+   "guenon": 0.3,
+   "macaque": 0.3
+  },
+  "mud turtle": {
+   "box turtle": 0.4,
+   "terrapin": 0.3,
+   "common newt": 0.3
+  },
+  "abaya": {
+   "cloak": 0.4,
+   "gown": 0.3,
+   "vestment": 0.3
+  },
+  "quilt": {
+   "pillow": 0.4,
+   "bath towel": 0.3,
+   "sleeping bag": 0.3
+  },
+  "stove": {
+   "microwave": 0.4,
+   "toaster": 0.3,
+   "space heater": 0.3
+  },
+  "ptarmigan": {
+   "ruffed grouse": 0.4,
+   "black grouse": 0.3,
+   "partridge": 0.3
+  },
+  "grocery store": {
+   "restaurant": 0.3,
+   "bakery": 0.3,
+   "confectionery": 0.2,
+   "butcher shop": 0.2
+  },
+  "electric fan": {
+   "space heater": 0.4,
+   "table lamp": 0.3,
+   "loudspeaker": 0.3
+  },
+  "basenji": {
+   "Ibizan hound": 0.4,
+   "whippet": 0.3,
+   "Italian greyhound": 0.3
+  },
+  "church": {
+   "monastery": 0.4,
+   "mosque": 0.3,
+   "castle": 0.3
+  },
+  "Rhodesian ridgeback": {
+   "bloodhound": 0.4,
+   "vizsla": 0.3,
+   "Weimaraner": 0.3
+  },
+  "black grouse": {
+   "ptarmigan": 0.3,
+   "ruffed grouse": 0.3,
+   "prairie chicken": 0.2,
+   "partridge": 0.1,
+   "bustard": 0.1
+  },
+  "monitor": {
+   "screen": 0.4,
+   "television": 0.3,
+   "desktop computer": 0.2,
+   "laptop": 0.1
+  },
+  "fly": {
+   "bee": 0.3,
+   "ladybug": 0.2,
+   "cockroach": 0.2,
+   "ant": 0.1,
+   "cricket": 0.1,
+   "warplane": 0.1
+  },
+  "standard schnauzer": {
+   "giant schnauzer": 0.4,
+   "miniature schnauzer": 0.3,
+   "wire-haired fox terrier": 0.1,
+   "Kerry blue terrier": 0.1,
+   "Scotch terrier": 0.1
+  },
+  "chest": {
+   "crate": 0.3,
+   "medicine chest": 0.2,
+   "wardrobe": 0.2,
+   "bookcase": 0.1,
+   "desk": 0.1,
+   "safe": 0.1
+  },
+  "oil filter": {
+   "drum": 0.4,
+   "cup": 0.3,
+   "pot": 0.3
+  },
+  "jellyfish": {
+   "sea anemone": 0.4,
+   "mushroom": 0.3,
+   "bubble": 0.3
+  },
+  "junco": {
+   "chickadee": 0.4,
+   "house finch": 0.3,
+   "goldfinch": 0.3
+  },
+  "hand-held computer": {
+   "laptop": 0.4,
+   "remote control": 0.3,
+   "digital watch": 0.3
+  },
+  "cellular telephone": {
+   "dial telephone": 0.4,
+   "radio": 0.3,
+   "remote control": 0.3
+  }
+ },
+ "val_classes": [
+  "thunder snake",
+  "potter's wheel",
+  "cup",
+  "pizza",
+  "colobus",
+  "mud turtle",
+  "abaya",
+  "quilt",
+  "stove",
+  "ptarmigan",
+  "oil filter",
+  "jellyfish",
+  "junco",
+  "hand-held computer",
+  "cellular telephone",
+  "black grouse",
+  "monitor",
+  "fly",
+  "standard schnauzer",
+  "chest",
+  "grocery store",
+  "electric fan",
+  "basenji",
+  "church",
+  "Rhodesian ridgeback",
+  "fountain pen",
+  "wreck",
+  "buckeye",
+  "drumstick",
+  "Irish terrier",
+  "harvestman",
+  "unicycle",
+  "chickadee",
+  "iPod",
+  "trench coat",
+  "vulture",
+  "Siberian husky",
+  "orange",
+  "hare",
+  "padlock",
+  "trolleybus",
+  "Labrador retriever",
+  "coffee mug",
+  "projectile",
+  "trimaran",
+  "bottlecap",
+  "bull mastiff",
+  "table lamp",
+  "cricket",
+  "tile roof",
+  "mousetrap",
+  "patas",
+  "letter opener",
+  "promontory",
+  "banded gecko",
+  "necklace",
+  "Saint Bernard",
+  "crib",
+  "snorkel",
+  "cockroach",
+  "rugby ball",
+  "howler monkey",
+  "buckle",
+  "komondor",
+  "sports car",
+  "macaque",
+  "bolo tie",
+  "robin",
+  "king penguin",
+  "typewriter keyboard",
+  "balloon",
+  "radio",
+  "liner",
+  "saltshaker",
+  "tree frog",
+  "reflex camera",
+  "tub",
+  "obelisk",
+  "can opener",
+  "school bus",
+  "book jacket",
+  "beagle",
+  "magpie",
+  "microwave",
+  "miniature pinscher",
+  "bow",
+  "toucan",
+  "Maltese dog",
+  "crossword puzzle",
+  "common newt",
+  "lab coat",
+  "Airedale",
+  "spindle",
+  "schipperke",
+  "Pembroke",
+  "Welsh springer spaniel",
+  "coral reef",
+  "hammer",
+  "water jug",
+  "caldron"
+ ]
+}
