@@ -23,9 +23,12 @@ class ParamTokenizer:
 
         idx, mean, std, layer_ids, intra_ids, slots = [], [], [], [], [], []
 
-        elem_mean = stats.get("__elem_mean__")  # per-element zoo mean for body weights (norm="element")
+        elem_mean = stats.get("__elem_mean__")  # per-element zoo mean for body weights (norm="element"/"zscore")
+        elem_std = stats.get("__elem_std__")    # per-element zoo spread (norm="zscore")
         if elem_mean is not None:
             elem_mean = elem_mean.cpu()  # checkpoints may be loaded straight onto the GPU
+        if elem_std is not None:
+            elem_std = elem_std.cpu()
 
         def add(positions, name, layer, intra, slot):
             pad = token_size - len(positions)
@@ -34,7 +37,10 @@ class ParamTokenizer:
                 mean.append(torch.cat([elem_mean[positions].float(), torch.zeros(pad)]))
             else:
                 mean.append(torch.full((token_size,), stats[name][0]))
-            std.append(torch.full((token_size,), stats[name][1]))
+            if elem_std is not None and slot < 0:
+                std.append(torch.cat([elem_std[positions].float(), torch.ones(pad)]))
+            else:
+                std.append(torch.full((token_size,), stats[name][1]))
             layer_ids.append(layer), intra_ids.append(intra), slots.append(slot)
 
         body = [n for n, _ in spec if n not in HEAD]
@@ -68,16 +74,20 @@ class ParamTokenizer:
     def compute_stats(flat, spec, norm="tensor", eps=1e-6):
         """norm="tensor": one mean/std per tensor (RPG). norm="element": body weights are expressed as a
         deviation from the zoo's mean model (scaled per tensor), so the generator spends its capacity on
-        what differs between tasks; the classifier keeps per-tensor stats because its rows follow the
-        classes, not fixed positions."""
+        what differs between tasks. norm="zscore": the same deviation, scaled by each weight's own spread
+        across the zoo, so a generation error of a given size is equally harmless for every weight (deep
+        BatchNorm nets such as ResNet collapse once errors exceed ~2x the zoo spread). The classifier keeps
+        per-tensor stats because its rows follow the classes, not fixed positions."""
         stats, o = {}, 0
         mean_model = flat.float().mean(0)
-        if norm == "element":
+        if norm in ("element", "zscore"):
             stats["__elem_mean__"] = mean_model
+        if norm == "zscore":
+            stats["__elem_std__"] = (flat.float() - mean_model).std(0).clamp_min(1e-8)
         for name, shape in spec:
             n = int(torch.Size(shape).numel())
             t = flat[:, o:o + n].float()
-            if norm == "element" and name not in HEAD:
+            if norm in ("element", "zscore") and name not in HEAD:
                 stats[name] = (0.0, max((t - mean_model[o:o + n]).std().item(), eps))
             else:
                 stats[name] = (t.mean().item(), max(t.std().item(), eps))
