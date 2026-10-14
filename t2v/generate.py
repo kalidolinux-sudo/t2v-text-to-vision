@@ -74,9 +74,14 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
     then the LLM. gate: known-class gate ("auto" = the checkpoint's). prior for classes the gate calls new:
     "llm" = ridge blended with TokenFactory visual neighbours, "clip" = with CLIP neighbours, "ridge" = ridge
     alone, "auto" = whichever of llm/clip scored better in the cross-validation at training time.
-    info: an optional dict, filled with what the agent did per class (descriptions, known/new, analogies)."""
+    info: an optional dict, filled with what the agent did per class (descriptions, known/new, analogies) and
+    the class names as matched to the vocabulary ("names", case-insensitive)."""
     class_names = [gen.names[c] if not isinstance(c, str) and getattr(gen, "names", None) else c
                    for c in class_names]
+    canon = {n.lower(): n for n in getattr(gen, "names", None) or []}  # "african elephant" -> "African elephant"
+    class_names = [canon.get(c.strip().lower(), c) for c in class_names]
+    if info is not None:
+        info["names"] = class_names
     if gate == "auto":
         gate = getattr(gen, "gate", 0.98)
     K = tok.K
@@ -87,7 +92,8 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
         descs = None
         if getattr(gen, "descriptions", None) is not None:
             from .describe import describe
-            descs = {c: (descriptions or {}).get(c) or gen.descriptions.get(c) for c in class_names}
+            descs = {c: (descriptions or {}).get(c) or (descriptions or {}).get(c.lower()) or gen.descriptions.get(c)
+                     for c in class_names}
             missing = [c for c, d in descs.items() if not d]
             if missing:
                 descs.update(describe(missing))

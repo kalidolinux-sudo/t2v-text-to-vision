@@ -37,6 +37,6 @@ def embed_names(names, device="cpu", ensemble=False, descriptions=None):
     for n in names:
         name = n.replace("_", " ")
         texts = [t.format(name) for t in templates]
-        texts += [f"{name}: {d}" for d in (descriptions or {}).get(n, []) or (descriptions or {}).get(name, [])]
+        texts += [f"{name}: {d}" for d in (descriptions or {}).get(n) or (descriptions or {}).get(name) or []]
         embs.append(F.normalize(_encode(texts, device).mean(0), dim=-1))
     return torch.stack(embs)

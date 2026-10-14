@@ -84,6 +84,7 @@ def main():
         t0 = time.time()
         info = {}
         flat = generate_flat(gen, tok, classes, steps=int(steps), body_noise=0.0, gate="auto", info=info)[0]
+        classes = info.get("names", classes)
         if dev.startswith("cuda"):
             torch.cuda.synchronize()
         dt = time.time() - t0
