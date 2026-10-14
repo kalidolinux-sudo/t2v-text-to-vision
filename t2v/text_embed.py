@@ -19,15 +19,24 @@ def _load(device):
 
 
 @torch.no_grad()
-def embed_names(names, device="cpu", ensemble=False):
+def _encode(texts, device):
     model, tok = _load(device)
+    batch = tok(texts, padding=True, truncation=True, max_length=77, return_tensors="pt").to(device)
+    out = model.get_text_features(**batch)
+    if not torch.is_tensor(out):  # newer transformers return a model output object
+        out = out.pooler_output if getattr(out, "pooler_output", None) is not None else out[0]
+    return F.normalize(out.float(), dim=-1)
+
+
+@torch.no_grad()
+def embed_names(names, device="cpu", ensemble=False, descriptions=None):
+    """One embedding per class: the average over prompt templates and, when `descriptions` has entries
+    for a class, over its LLM-written visual descriptions too (CuPL)."""
     templates = TEMPLATES if ensemble else [TEMPLATE]
     embs = []
-    for template in templates:
-        texts = [template.format(n.replace("_", " ")) for n in names]
-        batch = tok(texts, padding=True, return_tensors="pt").to(device)
-        out = model.get_text_features(**batch)
-        if not torch.is_tensor(out):  # newer transformers return a model output object
-            out = out.pooler_output if getattr(out, "pooler_output", None) is not None else out[0]
-        embs.append(F.normalize(out.float(), dim=-1))
-    return F.normalize(torch.stack(embs).mean(0), dim=-1)
+    for n in names:
+        name = n.replace("_", " ")
+        texts = [t.format(name) for t in templates]
+        texts += [f"{name}: {d}" for d in (descriptions or {}).get(n, []) or (descriptions or {}).get(name, [])]
+        embs.append(F.normalize(_encode(texts, device).mean(0), dim=-1))
+    return torch.stack(embs)

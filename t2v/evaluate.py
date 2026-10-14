@@ -41,7 +41,8 @@ def main():
     generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
     with open(os.path.join(a.zoo, "meta.json")) as f:
         seen = set(json.load(f)["seen"])
-    class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False))
+    class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False),
+                            descriptions=ck.get("descriptions"))
     net = target.build(arch).to(dev)
     zs_emb = embed_names(ck["names"], dev, ensemble=True)  # CLIP zero-shot uses the prompt ensemble
 
