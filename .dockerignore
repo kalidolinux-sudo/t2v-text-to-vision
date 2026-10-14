@@ -1,0 +1,7 @@
+zoo/
+ckpt/
+runs/
+out/
+data/*.pt
+**/__pycache__
+.env

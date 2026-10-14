@@ -67,13 +67,14 @@ def neighbor_rows(gen, names, emb, mode, need):
 
 @torch.no_grad()
 def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None,
-                  amp=False, body_noise=1.0, gate=None, prior="auto"):
+                  amp=False, body_noise=1.0, gate=None, prior="auto", info=None):
     """Weights for `n` models classifying `class_names` (names, or class ids of the training set), in order.
     Returns (n, P) flat vectors. For a generator trained with descriptions, each class is described visually
     before it is embedded: `descriptions` (e.g. from the request parser) first, then the training set's,
     then the LLM. gate: known-class gate ("auto" = the checkpoint's). prior for classes the gate calls new:
     "llm" = ridge blended with TokenFactory visual neighbours, "clip" = with CLIP neighbours, "ridge" = ridge
-    alone, "auto" = whichever of llm/clip scored better in the cross-validation at training time."""
+    alone, "auto" = whichever of llm/clip scored better in the cross-validation at training time.
+    info: an optional dict, filled with what the agent did per class (descriptions, known/new, analogies)."""
     class_names = [gen.names[c] if not isinstance(c, str) and getattr(gen, "names", None) else c
                    for c in class_names]
     if gate == "auto":
@@ -91,6 +92,8 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
             if missing:
                 descs.update(describe(missing))
         emb = embed_names(class_names, dev, ensemble=getattr(gen, "prompt_ensemble", False), descriptions=descs)
+        if info is not None:
+            info["descriptions"] = descs
     full = torch.zeros(n, K, emb.shape[1], device=dev)
     full[:, :len(class_names)] = emb
     mask = torch.zeros(n, K, dtype=torch.bool, device=dev)
@@ -107,7 +110,13 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
             corr = target.head_rows(gen.arch, flat)[:, :len(class_names)]
             flat = target.add_head_rows(gen.arch, flat, corr * (~known)[None, :, None], sign=-1.0)
             # new classes: mix in the rows of the known classes they look like (beta chosen by cross-validation)
-            nb_rows, beta = neighbor_rows(gen, class_names, emb, (gen.neighbors or {}).get("auto", "llm") if prior == "auto" else prior, ~known)
+            mode = (gen.neighbors or {}).get("auto", "llm") if prior == "auto" else prior
+            nb_rows, beta = neighbor_rows(gen, class_names, emb, mode, ~known)
+            if info is not None:
+                info["known"] = dict(zip(class_names, known.tolist()))
+                store = (gen.neighbors or {}).get("store", {})
+                info["analogies"] = {c: store.get(c) for c, k in zip(class_names, known.tolist())
+                                     if not k and mode == "llm" and store.get(c)}
             if nb_rows is not None:
                 use = ~known & ~nb_rows.isnan().any(1)
                 rows = torch.where(use[:, None], (1 - beta) * rows + beta * nb_rows.nan_to_num(), rows)
