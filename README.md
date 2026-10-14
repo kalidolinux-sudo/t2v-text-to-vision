@@ -149,6 +149,12 @@ docker build -t t2v --build-arg TORCH_INDEX=https://download.pytorch.org/whl/roc
 docker run -p 7860:7860 --device=/dev/kfd --device=/dev/dri --group-add video -e TOKENFACTORY_API_KEY=... t2v
 ```
 
+On your own Linux server (installs Docker, asks for the key, serves on port 80, restarts automatically):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kalidolinux-sudo/t2v-text-to-vision/main/scripts/deploy_server.sh | sudo bash
+```
+
 Without Docker:
 
 ```bash
