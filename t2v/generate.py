@@ -25,6 +25,10 @@ def load_generator(path, device):
     gen.arch = ck["arch"]
     W = ck.get("semantic_prior_W")
     gen.semantic_W = W.to(device) if W is not None else None
+    gen.seen_emb = None
+    if ck.get("train_classes") is not None:  # for the known-class gate
+        gen.seen_emb = embed_names([ck["names"][c] for c in ck["train_classes"]], device,
+                                   ensemble=ck.get("prompt_ensemble", False), descriptions=ck.get("descriptions"))
     gen.eval()
     return gen, tok, ck
 
@@ -55,7 +59,7 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
     tokens = gen.sample(full, mask, steps=steps, amp=amp, body_noise=body_noise)
     flat = tok.decode(tokens, num_classes=len(class_names))
     if getattr(gen, "semantic_W", None) is not None:  # rows = semantic prior from the class text + generated correction
-        if gate is not None:
+        if gate is not None and getattr(gen, "seen_emb", None) is not None:
             # known-class gate: keep the generated correction only for classes the generator was trained on
             # (CLIP similarity >= gate to a training class); for new classes it tends to add a remembered
             # correction of some known class, so they get the semantic prior alone
@@ -159,6 +163,8 @@ def main():
     p.add_argument("--out", default="out/generated")
     p.add_argument("--steps", type=int, default=5, help="DDIM steps (5 beat 10 and 20 on ResNet-20)")
     p.add_argument("--average", type=int, default=1, help="average this many samples into one model")
+    p.add_argument("--body_noise", type=float, default=0.0, help="0 = body at its conditional mean (best on ResNet-20)")
+    p.add_argument("--gate", type=float, default=0.98, help="known-class gate for the semantic head prior")
     p.add_argument("--device", default="auto")
     a = p.parse_args()
     dev = pick_device(a.device)
@@ -177,7 +183,8 @@ def main():
         raise SystemExit("give --prompt or --image_dir")
     t0 = time.time()
     flat = generate_flat(gen, tok, classes, n=a.average, steps=a.steps, emb=emb,
-                         descriptions=(info.get("descriptions") if a.prompt else None)).mean(0)
+                         descriptions=(info.get("descriptions") if a.prompt else None),
+                         body_noise=a.body_noise, gate=a.gate).mean(0)
     dt = time.time() - t0
     model = build_model(ck["arch"], flat, len(classes))
     onnx_path = export(model, classes, ck["arch"], a.out)

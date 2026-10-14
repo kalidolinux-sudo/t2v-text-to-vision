@@ -165,6 +165,29 @@ Ablations on the same zoo, at 20 steps:
 The descriptions help on every test. The joint transformer helps on unseen classes, and the lite
 variant is not worth it.
 
+### Diagnostics-driven fixes (100 test tasks per row, about ±3 points)
+
+`python -m t2v.diagnose` runs eight inference-only probes. On ResNet-20 they showed three things:
+- **Body:** the generated body was noisier than the zoo's mean model (the zoo's bodies differ mainly
+  by fine-tuning noise).
+- **Classifier rows for unseen classes:** they snap to rows of known classes. For 99.9% of them the
+  nearest training row is closer than the correct row.
+- **Ridge baseline:** a plain ridge map from class text to rows, with lambda chosen by cross-validation
+  over seen classes, beats the generator on unseen classes.
+
+| ResNet-20, 5 steps fp16 | Seen | All unseen |
+|---|---|---|
+| v6b | 84.0% | 45.9% |
+| v6b, noise-free body (`--body_noise 0`) | 86.3% | 46.5% |
+| v7: semantic head prior + generated correction (`--semantic_prior`) | 86.2% | 53.5% |
+| **v7 + known-class gate (`--gate 0.98`)** | **86.3%** | **58.1%** |
+| Ridge prior alone | 85.1% | 57.7% |
+| Oracle (fine-tuned) | 87.2% | 78.4% |
+
+With the gate, the generated correction is kept only for classes the generator was trained on (CLIP
+similarity ≥ 0.98; different CIFAR classes never exceed 0.954). New classes get the semantic prior,
+which generalises, and known classes get the prior plus the generated correction.
+
 ## Run it
 
 ```bash
