@@ -144,6 +144,7 @@ def main():
                     "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
                     "descriptions": descriptions,
                     "semantic_prior_W": semantic_W, "semantic_prior_info": semantic_info,
+                    "train_classes": sorted(set(classes[classes >= 0].tolist())),
                     "step": step}, a.out)
 
     flags = {"stop": False, "snapshot": False}

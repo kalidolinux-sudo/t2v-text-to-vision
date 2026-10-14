@@ -37,7 +37,7 @@ def main():
         if len(classes) < 2:
             raise gr.Error("Need at least 2 classes.")
         t0 = time.time()
-        flat = generate_flat(gen, tok, classes, steps=int(steps))[0]
+        flat = generate_flat(gen, tok, classes, steps=int(steps), body_noise=0.0, gate=0.98)[0]
         if dev.startswith("cuda"):
             torch.cuda.synchronize()
         dt = time.time() - t0
@@ -66,7 +66,7 @@ def main():
         with gr.Row():
             class_box = gr.Textbox(label="Classes (editable, comma-separated, max %d)" % tok.K)
             parse_info = gr.Markdown()
-        steps = gr.Slider(10, 200, value=20, step=10, label="Diffusion steps")
+        steps = gr.Slider(1, 50, value=5, step=1, label="Diffusion steps")
         make = gr.Button("2 · Generate model", variant="primary")
         result = gr.Markdown()
         files = gr.Files(label="Download")
