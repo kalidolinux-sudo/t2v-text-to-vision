@@ -18,7 +18,7 @@ def load_generator(path, device):
     ck = torch.load(path, map_location=device)
     tok = ParamTokenizer.from_state(ck["tokenizer"]).to(device)
     cfg = {"pred": "eps", "clip": 3.0, **ck["config"]}  # defaults for checkpoints saved before these options
-    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, **cfg).to(device)
+    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, valid=tok.valid, **cfg).to(device)
     gen.load_state_dict(ck["generator"])
     gen.prompt_ensemble = ck.get("prompt_ensemble", False)
     gen.arch = ck["arch"]
@@ -47,6 +47,34 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
             prior_emb = embed_names(class_names, dev, ensemble=True)
         flat = target.add_head_prior(arch, flat, prior_emb)
     return flat
+
+
+def embed_images(class_images, device="cpu"):
+    """Tina's image prompts: condition on example photos instead of class names. CLIP puts images and
+    text in one space, so the mean image embedding of each class stands in for its text embedding.
+    class_images: list (one per class) of lists of uint8 (H, W, 3) arrays -> (k, 512)."""
+    from .features import image_features
+    embs = []
+    for imgs in class_images:
+        x = torch.stack([torch.from_numpy(im).permute(2, 0, 1) for im in imgs])
+        embs.append(torch.nn.functional.normalize(image_features(x, device).mean(0), dim=-1))
+    return torch.stack(embs).to(device)
+
+
+def load_image_dir(path, max_per_class=16):
+    """<path>/<class name>/*.jpg|png -> (class names, list of image arrays per class)."""
+    import numpy as np
+    from PIL import Image
+    names, images = [], []
+    for d in sorted(os.listdir(path)):
+        full = os.path.join(path, d)
+        if not os.path.isdir(full):
+            continue
+        files = [f for f in sorted(os.listdir(full)) if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
+        if files:
+            names.append(d.replace("_", " "))
+            images.append([np.asarray(Image.open(os.path.join(full, f)).convert("RGB")) for f in files[:max_per_class]])
+    return names, images
 
 
 class Generated(torch.nn.Module):
@@ -104,17 +132,26 @@ def export(model, classes, arch, out_dir):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--ckpt", default="checkpoints/t2v_tinacnn_cifar100.pt")
-    p.add_argument("--prompt", required=True, help="free text in any language, or a comma-separated class list")
+    p.add_argument("--prompt", help="free text in any language, or a comma-separated class list")
+    p.add_argument("--image_dir", help="instead of text: one sub-folder of example photos per class (Tina's image prompts)")
     p.add_argument("--out", default="out/generated")
     p.add_argument("--steps", type=int, default=20)
     p.add_argument("--device", default="auto")
     a = p.parse_args()
     dev = pick_device(a.device)
     gen, tok, ck = load_generator(a.ckpt, dev)
-    classes, info = parse_classes(a.prompt, tok.K)
-    print(f"classes ({info['source']}): {classes}")
+    emb = None
+    if a.image_dir:
+        classes, images = load_image_dir(a.image_dir)
+        emb = embed_images(images, dev)
+        print(f"classes (from images): {classes}")
+    elif a.prompt:
+        classes, info = parse_classes(a.prompt, tok.K)
+        print(f"classes ({info['source']}): {classes}")
+    else:
+        raise SystemExit("give --prompt or --image_dir")
     t0 = time.time()
-    flat = generate_flat(gen, tok, classes, steps=a.steps)[0]
+    flat = generate_flat(gen, tok, classes, steps=a.steps, emb=emb)[0]
     dt = time.time() - t0
     model = build_model(ck["arch"], flat, len(classes))
     onnx_path = export(model, classes, ck["arch"], a.out)
