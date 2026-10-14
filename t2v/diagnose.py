@@ -18,7 +18,7 @@ import random
 import torch
 
 from . import target
-from .data import Cifar100, prep
+from .data import dataset_from_meta, prep
 from .generate import generate_flat, load_generator
 from .text_embed import embed_names
 from .train_gen import load_split
@@ -31,6 +31,7 @@ def main():
     p.add_argument("--zoo", default="zoo")
     p.add_argument("--data", default="data")
     p.add_argument("--tasks", type=int, default=20, help="tasks per split")
+    p.add_argument("--splits", default="eval_seen,eval_novel,eval_novel_hard")
     p.add_argument("--steps", type=int, default=5)
     p.add_argument("--body_noise", type=float, default=1.0, help="0 = start the body at the mean when sampling")
     p.add_argument("--fp16", action="store_true")
@@ -43,10 +44,10 @@ def main():
 
     gen, tok, ck = load_generator(a.ckpt, dev)
     arch = ck["arch"]
-    data = Cifar100(a.data, dev, features=target.uses_features(arch))
-    E = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False), descriptions=ck.get("descriptions"))
     with open(f"{a.zoo}/meta.json") as f:
         meta = json.load(f)
+    data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
+    E = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False), descriptions=ck.get("descriptions"))
     seen = meta["seen"]
     net = target.build(arch).to(dev)
     nb = sum(torch.Size(s).numel() for n, s in tok.spec if n not in target.HEAD)   # body/head boundary
@@ -61,8 +62,11 @@ def main():
         return accuracy(target.load_flat(net, flat.clone()), xt, yt, k=len(cls))
 
     splits = {}
-    for split in ("eval_seen", "eval_novel"):
-        flat, classes, oracle = load_split(a.zoo, split)
+    for split in a.splits.split(","):
+        try:
+            flat, classes, oracle = load_split(a.zoo, split)
+        except SystemExit:
+            continue
         splits[split] = [(flat[i].to(dev), [c for c in classes[i].tolist() if c >= 0], oracle[i].item())
                          for i in range(min(a.tasks, len(flat)))]
     train_flat, train_cls, _ = load_split(a.zoo, "train")
@@ -81,7 +85,7 @@ def main():
         right = [acc(g, cls) for g, (_, cls, _) in zip(g_all, tasks)]
         wrong = []
         for _, cls, _ in tasks:
-            other = random.sample([c for c in range(100) if c not in cls], len(cls))
+            other = random.sample([c for c in range(len(meta["names"])) if c not in cls], len(cls))
             wrong.append(acc(gen_flat(cls, emb=E[other])[0], cls))
         r["1_conditioning"] = {"right_classes": mean(right), "wrong_classes": mean(wrong),
                                "chance": mean([1 / len(c) for _, c, _ in tasks])}
@@ -150,7 +154,7 @@ def main():
                                       "zoo_mean_body_error": err_m[:, body].mean().item()}
 
         # 7. per-class recall vs CLIP similarity to the nearest seen class
-        if split == "eval_novel":
+        if split.startswith("eval_novel"):
             rec, sim = [], []
             seen_e = E[seen]
             for g, (_, cls, _) in zip(g_all, tasks):

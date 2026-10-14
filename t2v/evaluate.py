@@ -13,7 +13,7 @@ import time
 import torch
 
 from . import target
-from .data import Cifar100, prep
+from .data import dataset_from_meta, prep
 from .generate import generate_flat, load_generator
 from .text_embed import embed_names
 from .train_gen import load_split
@@ -25,7 +25,7 @@ def main():
     p.add_argument("--ckpt", default="ckpt/generator.pt")
     p.add_argument("--zoo", default="zoo")
     p.add_argument("--data", default="data")
-    p.add_argument("--splits", default="eval_seen,eval_unseen,eval_novel")
+    p.add_argument("--splits", default="eval_seen,eval_unseen,eval_novel,eval_novel_hard")
     p.add_argument("--max_tasks", type=int, default=100)
     p.add_argument("--samples", type=int, default=5, help="generated models per task")
     p.add_argument("--steps", type=int, default=100)
@@ -43,11 +43,12 @@ def main():
     dev = pick_device(a.device)
     gen, tok, ck = load_generator(a.ckpt, dev)
     arch = ck["arch"]
-    data = Cifar100(a.data, dev, features=target.uses_features(arch))
-    generic = target.build(arch, 100).to(dev)
-    generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
     with open(os.path.join(a.zoo, "meta.json")) as f:
-        seen = set(json.load(f)["seen"])
+        meta = json.load(f)
+    seen = set(meta["seen"])
+    data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
+    generic = target.build(arch, len(meta["names"])).to(dev)
+    generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
     gen.seen_emb = embed_names([ck["names"][c] for c in sorted(seen)], dev, ensemble=ck.get("prompt_ensemble", False),
                                descriptions=ck.get("descriptions"))
     class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False),
