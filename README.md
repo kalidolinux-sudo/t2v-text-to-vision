@@ -103,6 +103,9 @@ still works: requests are split on commas and the stored descriptions and analog
 and run it. It needs no API key, because the TokenFactory outputs are bundled. It takes about 72
 minutes and saves everything to Google Drive, resuming after a disconnect.
 
+Every experiment, bug and negative result along the way is written up in
+[`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md).
+
 ## Repository layout
 
 | Path | Contents |
@@ -112,6 +115,7 @@ minutes and saves everything to Google Drive, resuming after a disconnect.
 | `data/` | ImageNet-1k class names and split, and the TokenFactory outputs (descriptions of 1,000 classes, visual analogies) |
 | `notebooks/` | one-cell Colab runs; [`notebooks/README.md`](notebooks/README.md) lists them |
 | `results/` | logs and diagnostics of the T2V-1K run |
+| `docs/` | [experiment log](docs/EXPERIMENTS.md): all runs, bugs and negative results |
 | `checkpoints/` | the CIFAR-100 generator; the ImageNet-1k one is fetched from the release |
 
 ## Development log (CIFAR-100)
