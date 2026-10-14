@@ -77,7 +77,7 @@ Ablation at 20 sampling steps:
 | + descriptions + joint transformer (v6b) | 79.9% | 52.6% | 40.3% |
 | + descriptions + lite joint (2 layers, 1-layer class encoder) | 80.6% | 42.3% | 38.6% |
 
-Descriptions help on every split (+2.8 to +5.7 points). The joint transformer helps on unseen classes. The
+Descriptions help on every split (+2.8 to +5.7 points, 30 tasks per split, so each difference is near the noise level on its own). The joint transformer helps on unseen classes. The
 lite variant is not worth it.
 
 ### Component analysis: fewer sampling steps are better and faster

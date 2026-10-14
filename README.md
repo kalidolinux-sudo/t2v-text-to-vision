@@ -1,7 +1,7 @@
 <h1 align="center">T2V · Text to Vision</h1>
 
 <p align="center">
-  <b>Describe a classifier in words. Get a working vision model in 0.08 seconds.</b><br>
+  <b>Describe a classifier in words. Get a working vision model in 0.08 seconds (one T4 GPU).</b><br>
   An agent on AMD TokenFactory reasons about what each class looks like; a diffusion model then writes
   every weight of the network directly. No training and no images per model.
 </p>
@@ -9,7 +9,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB.svg">
-  <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-CUDA%20%7C%20ROCm%20%7C%20CPU-EE4C2C.svg">
+  <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-CUDA%20%7C%20CPU%20%7C%20ROCm%20build-EE4C2C.svg">
   <img alt="AMD TokenFactory" src="https://img.shields.io/badge/agent-AMD%20TokenFactory-ED1C24.svg">
   <a href="https://github.com/kalidolinux-sudo/t2v-text-to-vision/releases/tag/1.0"><img alt="Model: T2V-1K" src="https://img.shields.io/badge/model-T2V--1K-success.svg"></a>
 </p>
@@ -64,7 +64,7 @@ all.
 - The blend weight between the ridge prior and the analogies is chosen by cross-validation on 100 seen
   classes treated as new, never on test tasks.
 - The visual descriptions (5 per class for all 1,000 classes) are written by the same agent. On the
-  CIFAR-100 ResNet-20 they added 2.8 to 5.7 points ([experiment log](docs/EXPERIMENTS.md)).
+  CIFAR-100 ResNet-20 they added 2.8 to 5.7 points on 30-task tests ([experiment log](docs/EXPERIMENTS.md)).
 
 ### What the diagnostics say (`python -m t2v.diagnose`, 50 tasks per split)
 
@@ -89,12 +89,18 @@ in the product and when the system was built:
 | What TokenFactory does | Without it | Measured effect |
 |---|---|---|
 | **Understands** a free-form request in any language and turns it into class names | only comma-separated English class lists work | Arabic request → 85.0% on real CIFAR-100 photos (stage 1) |
-| **Describes** every class visually (5 descriptions × 1,000 ImageNet classes, and live for new names) | the condition is the bare class name | +2.8 to +5.7 points (CIFAR-100 ResNet-20 ablation) |
-| **Analogises**: picks the known classes a never-seen class looks like | rows of new classes come from text alone | +2.4 points on new ImageNet classes over the ridge prior |
+| **Describes** every class visually (5 descriptions × 1,000 ImageNet classes, and live for new names) | the condition is the bare class name | +2.8 to +5.7 points (CIFAR-100 ResNet-20 ablation, 30 tasks per split) |
+| **Analogises**: picks the known classes a never-seen class looks like | rows of new classes come from text alone | +2.4 points on new ImageNet classes over the ridge prior (100 tasks); no gain when whole groups are held out |
 
-The zoo and the generator were trained once, on a Google Colab T4, in 72 minutes
-(`notebooks/t2v_colab_final_imagenet.py`). The code runs unchanged on AMD GPUs with ROCm PyTorch (`--bf16`
-for Instinct MI300X, and a ROCm build of the Docker image).
+At build time TokenFactory wrote 5,000 visual descriptions (5 for each of the 1,000 ImageNet classes) and
+200 visual-analogy judgements, all shipped in `data/`. At run time every request goes through it, and so does every class
+name it has not described before.
+
+The whole system (1,000-model zoo, 400 test models, generator training, evaluation) was built end to end
+on a single Google Colab T4 GPU in 72 minutes (`notebooks/t2v_colab_final_imagenet.py`), with Google Drive
+holding checkpoints so finished stages survive disconnects. The code uses only standard PyTorch operations and
+ships a ROCm build of the Docker image (`--bf16` is the intended precision on AMD Instinct MI300X); it has
+not been benchmarked on AMD GPUs yet.
 
 ## How it works
 
@@ -161,13 +167,13 @@ analogies stored in `data/` and in the checkpoint are used.
 
 Paste [`notebooks/t2v_colab_final_imagenet.py`](notebooks/t2v_colab_final_imagenet.py) into one Google
 Colab cell (T4 GPU) and run it. It needs no API key, because the TokenFactory outputs are bundled. It
-takes about 72 minutes, saves everything to Google Drive and resumes after a disconnect. The console log
+takes about 72 minutes and saves everything to Google Drive; after a disconnect, rerunning the cell skips the finished zoo and test models (an interrupted generator training restarts). The console log
 of the run reported above is in [`results/t2v_1k/`](results/t2v_1k/).
 
 ## Command-line pipeline
 
 ```bash
-pip install -r requirements.txt     # on AMD Developer Cloud, ROCm PyTorch is usually preinstalled
+pip install -r requirements.txt     # on an AMD GPU, install the ROCm build of PyTorch first
 
 # 1. generic model + model zoo (Tina recipe); shards run in parallel on one GPU
 python -m t2v.zoo generic --dataset imagenet32 --split_file data/imagenet_split.json --arch resnet20 --out zoo --amp
@@ -183,7 +189,7 @@ export TOKENFACTORY_MODEL=DeepSeek-V4-Flash
 python -m t2v.describe --names_from zoo/meta.json --out data/descriptions.json
 python -m t2v.neighbors --zoo zoo --descriptions data/descriptions.json --out data/neighbors.json
 
-# 3. generator (add --bf16 on MI300X, --fp16 on T4-class GPUs)
+# 3. generator (--fp16 on T4-class GPUs; --bf16 intended for MI300X)
 python -m t2v.train_gen --zoo zoo --out ckpt/generator.pt --denoiser mlp --mlp_hidden 1024 --joint_layers 4 \
     --norm element --head_weight 10 --semantic_prior --descriptions data/descriptions.json \
     --neighbors data/neighbors.json --prompt_ensemble --emb_noise 0.02 --ema 0.999 --cosine --steps 6000
@@ -222,6 +228,7 @@ tests/                  unit tests (pytest, CPU, no downloads)
 
 ## Limitations
 
+- Trained and measured on an NVIDIA T4. The ROCm build is provided but not yet benchmarked on AMD GPUs.
 - The generator itself is trained once, on a model zoo. "No training" applies to each new model, not
   to the system as a whole.
 - Images are 32×32, so photos are downscaled heavily, and fine-grained classes (dog breeds, for
@@ -248,9 +255,9 @@ tests/                  unit tests (pytest, CPU, no downloads)
 T2V was built by its author with the help of AI assistants, and every result in this repository comes
 from code that was actually run (logs in [`results/`](results/)):
 
-- **Gemini** (Google, latest thinking version) helped shape the experiments and with research: reading
-  the parameter-generation literature (Tina, RPG, G.pt) and planning the ablations.
-- **Claude** (Anthropic) helped write the code and the documentation.
+- **Gemini** (Google's latest thinking model) helped formulate the experiments and assisted with the
+  research.
+- **Claude** (Anthropic) wrote much of the code and documentation under the author's direction.
 - **The author** directed the project, ran the training on Google Colab, and reviewed the code, the
   experiments and the claims made here.
 - **AMD TokenFactory** (DeepSeek-V4-Flash) is part of the system itself, as described
