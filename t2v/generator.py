@@ -257,19 +257,21 @@ class T2VGenerator(nn.Module):
         return err.sum() / vm.sum()
 
     @torch.no_grad()
-    def sample(self, emb, cls_mask, steps=100, chunk=4096, clip="auto", amp=False):
+    def sample(self, emb, cls_mask, steps=100, chunk=4096, clip="auto", amp=False, body_noise=1.0):
         """DDIM (eta=0). Returns (B, T, D) normalised tokens. `clip` bounds the x0 estimate; "auto" uses
         the largest normalised value seen in the zoo (without it, eps-prediction diverges at t~T)."""
         if clip == "auto":
             clip = self.config.get("clip")
         if amp and emb.is_cuda:  # fp16 inference: tensor cores on T4-class GPUs
             with torch.autocast("cuda", dtype=torch.float16):
-                return self.sample(emb, cls_mask, steps, chunk, clip, amp=False).float()
+                return self.sample(emb, cls_mask, steps, chunk, clip, amp=False, body_noise=body_noise).float()
         joint = self.config.get("joint_layers", 0) > 0
         proto, classes = self.prototypes(emb, cls_mask, return_classes=True)
         B, T, d = proto.shape
         p = proto.reshape(B * T, d)
         x = torch.randn(B * T, self.config["token_size"], device=p.device)
+        if body_noise != 1.0:  # body_noise=0 starts the body at the mean: its conditional-mean estimate
+            x[(self.slots < 0).repeat(B)] *= body_noise
         ts = torch.linspace(len(self.alpha_bar) - 1, 0, steps, device=p.device).round().long()
         for i, t in enumerate(ts):
             ab = self.alpha_bar[t]

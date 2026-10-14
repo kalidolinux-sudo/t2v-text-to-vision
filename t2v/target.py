@@ -107,6 +107,58 @@ def add_head_prior(arch, flat, text_emb, sign=1.0):
     return flat
 
 
+def _head_offsets(arch):
+    o, offs = 0, {}
+    for name, shape in param_spec(build(arch)):
+        offs[name] = (o, shape)
+        o += int(torch.Size(shape).numel())
+    (w0, (K, feat)), (b0, _) = offs[HEAD[0]], offs[HEAD[1]]
+    return w0, b0, K, feat
+
+
+def head_rows(arch, flat):
+    """flat (..., P) -> classifier rows (..., K, feat + 1) as [weight row, bias]."""
+    w0, b0, K, feat = _head_offsets(arch)
+    w = flat[..., w0:w0 + K * feat].reshape(*flat.shape[:-1], K, feat)
+    return torch.cat([w, flat[..., b0:b0 + K, None]], -1)
+
+
+def add_head_rows(arch, flat, rows, sign=1.0):
+    """Add (sign=+1) or remove (sign=-1) `rows` (..., k, feat + 1) to the first k classifier rows of `flat`."""
+    w0, b0, K, feat = _head_offsets(arch)
+    k = rows.shape[-2]
+    flat = flat.clone()
+    rows = rows.to(flat.device, flat.dtype)
+    w = flat[..., w0:w0 + K * feat].reshape(*flat.shape[:-1], K, feat).clone()
+    w[..., :k, :] += sign * rows[..., :feat]
+    flat[..., w0:w0 + K * feat] = w.reshape(*flat.shape[:-1], K * feat)
+    flat[..., b0:b0 + k] += sign * rows[..., feat]
+    return flat
+
+
+def fit_semantic_prior(emb, rows, class_ids, lams=(1e-3, 1e-2, 1e-1, 1.0, 3.0, 10.0, 30.0, 100.0), folds=5):
+    """Ridge map from class text embeddings to classifier rows (DeViSE-style). Lambda is chosen by
+    cross-validation over *classes* (rows of held-out classes are predicted from the others), so the
+    choice reflects generalisation to unseen classes and never looks at test tasks.
+    emb (N, E), rows (N, F+1), class_ids (N,) -> W (E, F+1), info."""
+    fold = class_ids % folds
+    eye = torch.eye(emb.shape[1], device=emb.device)
+    best = None
+    for lam in lams:
+        cos = []
+        for f in range(folds):
+            tr, te = fold != f, fold == f
+            if te.sum() == 0:
+                continue
+            W = torch.linalg.solve(emb[tr].T @ emb[tr] + lam * eye, emb[tr].T @ rows[tr])
+            cos.append(torch.nn.functional.cosine_similarity(emb[te] @ W, rows[te], dim=-1).mean().item())
+        score = sum(cos) / len(cos)
+        if best is None or score > best[1]:
+            best = (lam, score)
+    W = torch.linalg.solve(emb.T @ emb + best[0] * eye, emb.T @ rows)
+    return W, {"lambda": best[0], "cv_row_cosine_on_held_out_classes": best[1]}
+
+
 def build(arch, num_classes=MAX_CLASSES):
     return ARCHS[arch](num_classes)
 
