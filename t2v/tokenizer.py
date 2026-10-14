@@ -24,6 +24,8 @@ class ParamTokenizer:
         idx, mean, std, layer_ids, intra_ids, slots = [], [], [], [], [], []
 
         elem_mean = stats.get("__elem_mean__")  # per-element zoo mean for body weights (norm="element")
+        if elem_mean is not None:
+            elem_mean = elem_mean.cpu()  # checkpoints may be loaded straight onto the GPU
 
         def add(positions, name, layer, intra, slot):
             pad = token_size - len(positions)
