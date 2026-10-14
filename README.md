@@ -81,12 +81,17 @@ all.
 
 ## Quick start
 
+The trained generators are attached to the repository's **Releases** (GitHub keeps large files out of
+the source tree): `t2v_1k.pt` (ImageNet-1k, 198 MB) and `t2v_tinacnn_cifar100.pt` (CIFAR-100, 30 MB).
+Put them in `checkpoints/`, or set `T2V_CKPT_URL` to the asset's download link and the app fetches it.
+
 ```bash
 # Docker (CPU); the TokenFactory key is passed at run time and never stored in the image
 docker build -t t2v .
 docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... t2v
 # the ImageNet model: put t2v_1k.pt in checkpoints/ or let the app fetch it from Hugging Face
-docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... -e T2V_CKPT=checkpoints/t2v_1k.pt -e T2V_HF_REPO=<user>/t2v-1k t2v
+docker run -p 7860:7860 -e TOKENFACTORY_API_KEY=... -e T2V_CKPT=checkpoints/t2v_1k.pt \
+    -e T2V_CKPT_URL=https://github.com/<user>/t2v-text-to-vision/releases/download/v1.0/t2v_1k.pt t2v
 # AMD GPU: docker build -t t2v --build-arg TORCH_INDEX=https://download.pytorch.org/whl/rocm6.4 .
 ```
 
