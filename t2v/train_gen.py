@@ -75,6 +75,8 @@ def main():
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
     p.add_argument("--fp16", action="store_true", help="fp16 autocast + loss scaling (for T4/V100-class GPUs)")
+    p.add_argument("--head_weight", type=float, default=1.0,
+                   help="loss weight of classifier-row tokens (they are also always included in each step)")
     p.add_argument("--min_snr", type=float, default=0.0, help="Min-SNR-gamma loss weighting, e.g. 5; 0 = off")
     p.add_argument("--log_every", type=int, default=100)
     p.add_argument("--save_every", type=int, default=1000,
@@ -143,7 +145,7 @@ def main():
         row_valid = (tok.slots[None] < 0) | (tok.slots[None] < k[:, None])
         with torch.autocast(device_type="cuda" if dev.startswith("cuda") else "cpu", dtype=amp_dtype,
                             enabled=a.bf16 or use_fp16):
-            loss = gen.loss(x0, tok.valid, emb, mask, row_valid, a.tokens_per_step, a.min_snr)
+            loss = gen.loss(x0, tok.valid, emb, mask, row_valid, a.tokens_per_step, a.min_snr, a.head_weight)
         opt.zero_grad(set_to_none=True)
         scaler.scale(loss).backward()
         scaler.unscale_(opt)

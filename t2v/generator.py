@@ -185,14 +185,21 @@ class T2VGenerator(nn.Module):
         h = h + self.xattn(self.xnorm(h), c, c, need_weights=False)[0]
         return self.proto_out(h)
 
-    def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None, min_snr=0.0):
+    def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None, min_snr=0.0, head_weight=1.0):
         """x0 (B,T,D) normalised tokens, valid (T,D), row_valid (B,T) -> denoising MSE.
         min_snr > 0 applies Min-SNR-gamma weighting (Hang et al., 2023), which down-weights the very
-        noisy timesteps where the target is unpredictable and speeds up convergence."""
+        noisy timesteps where the target is unpredictable and speeds up convergence.
+        Classifier-row tokens are always included and weighted by head_weight: in deep nets they are a
+        tiny fraction of all tokens (10 of 364 in ResNet-20), yet they carry all the class information."""
         proto = self.prototypes(emb, cls_mask)
         sel = row_valid.nonzero()
+        is_head = self.slots[sel[:, 1]] >= 0
         if tokens_per_step and len(sel) > tokens_per_step:
-            sel = sel[torch.randperm(len(sel), device=sel.device)[:tokens_per_step]]
+            head, body = sel[is_head], sel[~is_head]
+            keep = max(0, tokens_per_step - len(head))
+            body = body[torch.randperm(len(body), device=sel.device)[:keep]]
+            sel = torch.cat([head, body])
+            is_head = self.slots[sel[:, 1]] >= 0
         b, t = sel[:, 0], sel[:, 1]
         x, p, vm = x0[b, t], proto[b, t], valid[t].float()
         step = torch.randint(0, len(self.alpha_bar), (len(x),), device=x.device)
@@ -207,6 +214,9 @@ class T2VGenerator(nn.Module):
             if self.config["pred"] != "x0":
                 w = w * min_snr / snr.clamp(min=1e-8)     # eps-prediction form: min(snr, g) / snr
             err = err * w
+        if head_weight != 1.0:
+            hw = torch.where(is_head, torch.full_like(err, head_weight), torch.ones_like(err))
+            return (err * hw).sum() / (vm.sum(-1) * hw).sum()
         return err.sum() / vm.sum()
 
     @torch.no_grad()
