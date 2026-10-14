@@ -1,0 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers>=4.44
+huggingface_hub
+pyarrow
+pillow
+numpy
+requests
+onnx
