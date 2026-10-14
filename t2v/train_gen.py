@@ -72,6 +72,7 @@ def main():
     p.add_argument("--ema", type=float, default=0.0, help="EMA decay for the saved weights (e.g. 0.999); 0 = off")
     p.add_argument("--no_perm_aug", action="store_true")
     p.add_argument("--prompt_ensemble", action="store_true", help="average CLIP embeddings over several templates")
+    p.add_argument("--descriptions", help="JSON of LLM-written visual descriptions per class (t2v.describe)")
     p.add_argument("--emb_noise", type=float, default=0.0, help="std of Gaussian noise added to class embeddings")
     p.add_argument("--bf16", action="store_true", help="bf16 autocast (recommended on MI300X)")
     p.add_argument("--fp16", action="store_true", help="fp16 autocast + loss scaling (for T4/V100-class GPUs)")
@@ -95,7 +96,8 @@ def main():
 
     spec = target.param_spec(target.build(meta["arch"]))
     tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
-    class_emb = embed_names(meta["names"], dev, ensemble=a.prompt_ensemble)
+    descriptions = json.load(open(a.descriptions)) if a.descriptions else None
+    class_emb = embed_names(meta["names"], dev, ensemble=a.prompt_ensemble, descriptions=descriptions)
     clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
                        a.backbone, a.backbone_layers, a.cond_layers,
@@ -127,6 +129,7 @@ def main():
         weights = ema if ema is not None else gen.state_dict()
         torch.save({"generator": weights, "config": gen.config, "tokenizer": tok.state(),
                     "arch": meta["arch"], "names": meta["names"], "prompt_ensemble": a.prompt_ensemble,
+                    "descriptions": descriptions,
                     "step": step}, a.out)
 
     flags = {"stop": False, "snapshot": False}

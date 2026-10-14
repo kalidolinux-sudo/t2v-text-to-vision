@@ -1,0 +1,702 @@
+{
+ "apple": [
+  "Round red or green fruit with smooth shiny skin and a small stem",
+  "Glossy sphere with a dimpled top and occasional brown speckles",
+  "Crisp-looking orb, often with a waxy sheen and a leaf attached",
+  "Brightly colored globe, sometimes striped, with a firm texture",
+  "Compact fruit with a slight ribbing and a dull or glossy finish"
+ ],
+ "aquarium_fish": [
+  "Small, colorful fish with flowing fins and scales, in a glass tank",
+  "Bright orange or blue fish with a forked tail and shimmering body",
+  "Tiny fish with vertical stripes and a rounded tail, swimming in water",
+  "Glittering fish with a pointed snout and translucent fins, in a lit tank",
+  "Compact fish with a metallic sheen and a fan-like tail, among plants"
+ ],
+ "baby": [
+  "Tiny human with a large head, closed eyes, and soft skin, in a crib",
+  "Chubby infant with a bald head, wearing a onesie, lying down",
+  "Small baby with a wrinkled face, tiny fists, and a pacifier",
+  "Newborn with a pinkish complexion, wrapped in a blanket, asleep",
+  "Infant with a toothless smile, rosy cheeks, and a tuft of hair"
+ ],
+ "bear": [
+  "Large furry mammal with a rounded snout, small ears, and a bulky body",
+  "Brown or black bear with a humped back and thick fur, standing on four legs",
+  "Shaggy bear with a broad head, prominent claws, and a heavy gait",
+  "Dark-furred bear with a short tail, rounded ears, and a powerful build",
+  "Bear with a light muzzle, dark coat, and a lumbering posture in a forest"
+ ],
+ "beaver": [
+  "Medium rodent with a flat, scaly tail and webbed hind feet",
+  "Brown-furred animal with a broad, paddle-like tail and a blunt head",
+  "Beaver with a large, flat tail, small eyes, and a chisel-like front teeth",
+  "Stocky rodent with a dark brown coat, a wide tail, and a dam nearby",
+  "Semi-aquatic mammal with a glossy coat, a flat tail, and a lodge"
+ ],
+ "bed": [
+  "Rectangular furniture with a mattress, pillows, and a headboard",
+  "Wooden or metal frame with a cushioned top and a blanket",
+  "Bed with a quilted cover, plump pillows, and a footboard",
+  "Low platform bed with a thin mattress and a simple frame",
+  "Four-poster bed with curtains, a thick mattress, and a duvet"
+ ],
+ "bee": [
+  "Small flying insect with yellow and black stripes and translucent wings",
+  "Hairy bee with a striped abdomen, a stinger, and a fuzzy thorax",
+  "Tiny bee with a black head, yellow bands, and a buzzing posture",
+  "Bee with a rounded body, two pairs of wings, and a pollen basket",
+  "Striped insect with a narrow waist, a stinger, and a hovering flight"
+ ],
+ "beetle": [
+  "Hard-shelled insect with a shiny, often dark, oval body and antennae",
+  "Beetle with a metallic green or black shell and six legs",
+  "Rounded beetle with a segmented abdomen, a hard elytra, and a small head",
+  "Shiny beetle with a ridged back, long antennae, and a slow crawl",
+  "Compact beetle with a glossy carapace, a pronotum, and a pair of pincers"
+ ],
+ "bicycle": [
+  "Two-wheeled vehicle with a frame, handlebars, and pedals",
+  "Bicycle with a diamond frame, spoked wheels, and a chain",
+  "Racing bike with thin tires, drop bars, and a lightweight frame",
+  "Mountain bike with thick knobby tires, a suspension fork, and a flat bar",
+  "Cruiser bike with a curved frame, wide seat, and a basket"
+ ],
+ "bottle": [
+  "Cylindrical container with a narrow neck and a cap, often glass or plastic",
+  "Bottle with a rounded body, a short neck, and a label",
+  "Tall bottle with a tapered top and a flat base",
+  "Squat bottle with a wide mouth and a handle",
+  "Transparent bottle with a screw cap and a liquid inside"
+ ],
+ "bowl": [
+  "Round, open container with a wide rim and a curved base",
+  "Bowl with a shallow depth and a smooth interior",
+  "Deep bowl with a thick lip and a rounded bottom",
+  "Ceramic bowl with a glazed surface and a foot ring",
+  "Wooden or metal bowl with a simple, unadorned shape"
+ ],
+ "boy": [
+  "Young male child with short hair, wearing casual clothes",
+  "Boy with a smiling face, a t-shirt, and jeans, standing",
+  "Small boy with a backpack, a cap, and a playful stance",
+  "Boy with a round face, a crew cut, and a school uniform",
+  "Teenage boy with a lanky build, a hoodie, and a skateboard"
+ ],
+ "bridge": [
+  "Structure spanning a gap with a deck, supports, and railings",
+  "Arched bridge with a curved roadway and stone pillars",
+  "Suspension bridge with tall towers and hanging cables",
+  "Beam bridge with a flat deck and vertical piers",
+  "Truss bridge with a lattice of metal bars and a roadway"
+ ],
+ "bus": [
+  "Large, boxy vehicle with windows, a roof, and wheels",
+  "Public bus with a long body, a front door, and a destination sign",
+  "School bus with a yellow paint, a black stripe, and a stop arm",
+  "Double-decker bus with a red color and two levels",
+  "Coach bus with a sleek body, tinted windows, and a luggage compartment"
+ ],
+ "butterfly": [
+  "Insect with large, colorful wings and a slender body",
+  "Butterfly with orange and black wings, white spots, and antennae",
+  "Delicate butterfly with patterned wings, a proboscis, and a fluttering flight",
+  "Brightly colored butterfly with symmetrical wings and a small head",
+  "Butterfly with a blue or yellow wing pattern and a resting posture"
+ ],
+ "camel": [
+  "Large mammal with a humped back, long neck, and padded feet",
+  "Camel with a single or double hump, a shaggy coat, and a long snout",
+  "Desert animal with a tall stature, a curved neck, and a bushy tail",
+  "Camel with a sandy brown color, a large lip, and a walking gait",
+  "Bactrian camel with two humps, a heavy build, and a woolly coat"
+ ],
+ "can": [
+  "Cylindrical metal container with a top lid and a label",
+  "Soda can with a shiny aluminum surface and a pull tab",
+  "Soup can with a paper label, a rim, and a flat bottom",
+  "Tall can with a tapered top and a ring pull",
+  "Short, wide can with a peel-off lid and a metallic sheen"
+ ],
+ "castle": [
+  "Large fortified building with towers, battlements, and a gate",
+  "Stone castle with a central keep, turrets, and a moat",
+  "Medieval castle with a drawbridge, a high wall, and a flag",
+  "Fairy-tale castle with pointed spires, a colorful facade, and a courtyard",
+  "Ruin castle with crumbling walls, a broken arch, and a hilltop setting"
+ ],
+ "caterpillar": [
+  "Long, segmented larva with many legs and a soft body",
+  "Caterpillar with a green or brown color, a head, and a wriggling motion",
+  "Hairy caterpillar with a striped body and a defensive posture",
+  "Caterpillar with a smooth skin, a pair of false eyes, and a leaf-eating habit",
+  "Small caterpillar with a rounded head, a series of prolegs, and a curled shape"
+ ],
+ "cattle": [
+  "Large domesticated animals with a sturdy body, horns, and a tail",
+  "Cattle with a brown or black coat, a broad muzzle, and a dewlap",
+  "Cow with a white and black patchy coat, a udder, and a calm stance",
+  "Bull with a muscular neck, a hump, and a pair of horns",
+  "Steer with a lean frame, a short coat, and a grazing posture"
+ ],
+ "chair": [
+  "Four legs, a flat seat, and a vertical backrest, often made of wood or metal.",
+  "Seen from the side, an L-shaped silhouette with a seat and back support.",
+  "Upholstered version has padded seat and back, with fabric or leather covering.",
+  "Often found around tables, with a simple frame and no armrests.",
+  "Stackable plastic or metal chair with a curved seat and open back."
+ ],
+ "chimpanzee": [
+  "Dark brown or black fur covering a lean body, with a bare face and hands.",
+  "Long arms, shorter legs, and a prominent brow ridge over the eyes.",
+  "Sitting or standing, often showing expressive facial features and large ears.",
+  "In a forest or zoo enclosure, sometimes holding a branch or tool.",
+  "Knuckle-walking posture with hands on ground, body angled forward."
+ ],
+ "clock": [
+  "Round face with numbers or markers, and two or three hands in the center.",
+  "Digital display showing time in glowing numerals, often on a flat screen.",
+  "Wall-mounted with a circular rim and a glass cover over the dial.",
+  "Alarm clock with two bells on top and a rectangular body.",
+  "Grandfather clock with a tall wooden case and a pendulum swinging."
+ ],
+ "cloud": [
+  "Fluffy white or gray mass in the sky, with a flat bottom and rounded top.",
+  "Thin, wispy streaks of white against a blue sky, like stretched cotton.",
+  "Dark, dense cloud layer covering the sky, often before rain.",
+  "Cumulus cloud with distinct cauliflower-like bumps and shadows.",
+  "Cirrus cloud with delicate, feathery filaments high in the atmosphere."
+ ],
+ "cockroach": [
+  "Flattened, oval-shaped body with long antennae and six spiny legs.",
+  "Shiny brown or black exoskeleton, often with a yellowish band on the head.",
+  "Seen scurrying on a kitchen floor or wall, with a quick, darting motion.",
+  "Winged species with long, leathery wings folded over the back.",
+  "Small, dark insect with a segmented abdomen and two long cerci at the rear."
+ ],
+ "couch": [
+  "Long, upholstered seat with a back and armrests, often for multiple people.",
+  "L-shaped sectional with a chaise lounge on one end, covered in fabric.",
+  "Leather sofa with a cushioned seat and back, and wooden or metal legs.",
+  "Fold-out sofa bed with a flat back and a seat that pulls out.",
+  "Low-profile modern couch with a straight back and thin, angled legs."
+ ],
+ "crab": [
+  "Round, flattened body with a hard shell and ten legs, including two claws.",
+  "Red or orange shell with a wide carapace and small eyes on stalks.",
+  "Walking sideways on a sandy beach, with claws held up and ready.",
+  "Spider crab with long, spindly legs and a small, bumpy body.",
+  "Hermit crab with a spiral shell on its back, and two claws of different sizes."
+ ],
+ "crocodile": [
+  "Long, low-slung body with a thick, scaly hide and a long snout.",
+  "Dark green or gray with a rough, armored back and a powerful tail.",
+  "Floating in water with only eyes and nostrils above the surface.",
+  "Basking on a riverbank with mouth open, showing conical teeth.",
+  "Juvenile with a lighter color and more prominent ridges on the back."
+ ],
+ "cup": [
+  "Small, cylindrical container with a handle, often made of ceramic or glass.",
+  "Disposable paper cup with a tapered shape and a rolled rim.",
+  "Mug with a thick wall, a large handle, and a flat bottom.",
+  "Teacup with a wide, shallow bowl and a small, delicate handle.",
+  "Plastic cup with a straw, often with a lid and a curved side."
+ ],
+ "dinosaur": [
+  "Large, reptilian creature with a long tail, thick legs, and a small head.",
+  "Tyrannosaurus rex with a massive skull, tiny arms, and a bulky body.",
+  "Brachiosaurus with a long neck, small head, and four pillar-like legs.",
+  "Stegosaurus with a row of plates along its back and spiked tail.",
+  "Velociraptor with a sleek body, long claws, and a feathered covering."
+ ],
+ "dolphin": [
+  "Sleek, gray body with a curved dorsal fin and a long, beak-like snout.",
+  "Leaping out of water, showing a smooth, shiny skin and a tail fluke.",
+  "Swimming near the surface, with a blowhole and a prominent fin.",
+  "Bottlenose dolphin with a short, stubby beak and a playful expression.",
+  "In a pod, with several individuals surfacing together, showing their fins."
+ ],
+ "elephant": [
+  "Huge, gray mammal with a trunk, large ears, and thick, wrinkled skin.",
+  "African elephant with large, fan-shaped ears and a sloping back.",
+  "Asian elephant with smaller ears and a rounded back, often with painted decorations.",
+  "Walking on a dusty path, with a trunk raised and tusks visible.",
+  "Bathing in a river, spraying water with its trunk, showing a wet, dark hide."
+ ],
+ "flatfish": [
+  "Flattened, oval body with both eyes on one side, lying on the seafloor.",
+  "Brown or speckled color that blends with sand or rocks, with a fringed edge.",
+  "Flounder with a diamond shape and a small mouth, often partially buried.",
+  "Halibut with a large, flat body and a dark upper side, white below.",
+  "Turbot with a round, scaleless body and a pattern of bony tubercles."
+ ],
+ "forest": [
+  "Dense collection of tall trees with green canopies and brown trunks.",
+  "Sunlight filtering through leaves, with a path winding among ferns and moss.",
+  "Pine forest with needle-covered ground and straight, tall conifers.",
+  "Autumn forest with orange and red leaves on trees, and a carpet of fallen leaves.",
+  "Rainforest with layered vegetation, vines, and a humid, dark understory."
+ ],
+ "fox": [
+  "Small, dog-like animal with a pointed snout, large ears, and a bushy tail.",
+  "Red fox with orange-red fur, white chest, and black legs and ears.",
+  "Arctic fox with white fur in winter, turning brown in summer.",
+  "Fennec fox with oversized ears and a pale, sandy coat.",
+  "Sitting or trotting in a field, with a long, fluffy tail trailing behind."
+ ],
+ "girl": [
+  "Young female human with long hair, often wearing a dress or casual clothes.",
+  "Child with a ponytail, smiling, with a backpack in a school setting.",
+  "Teenage girl with a smartphone, wearing jeans and a t-shirt.",
+  "Toddler with pigtails, playing in a park, with a colorful outfit.",
+  "Portrait of a girl with freckles and a bright, cheerful expression."
+ ],
+ "hamster": [
+  "Small, round rodent with a short tail, large cheek pouches, and tiny ears.",
+  "Golden hamster with a brown and white coat, sitting on bedding.",
+  "Dwarf hamster with a gray or white body, often in a cage with a wheel.",
+  "Holding a seed in its paws, with a fluffy, compact body.",
+  "Sleeping curled up in a ball, with a soft, furry texture."
+ ],
+ "house": [
+  "Rectangular building with a pitched roof, windows, and a front door.",
+  "Two-story house with a garage, a lawn, and a chimney.",
+  "Cottage with a thatched roof, stone walls, and a garden.",
+  "Modern house with flat roof, large glass windows, and a minimalist design.",
+  "Colonial house with a symmetrical facade, columns, and a central door."
+ ],
+ "kangaroo": [
+  "Large marsupial with a long, thick tail, strong hind legs, and small front arms.",
+  "Red kangaroo with a reddish-brown coat, standing upright on its hind legs.",
+  "Grey kangaroo with a lighter coat, hopping across an open field.",
+  "Female with a joey in her pouch, showing a rounded belly and a gentle face.",
+  "Sitting on its haunches, with a long tail touching the ground for balance."
+ ],
+ "keyboard": [
+  "Rectangular input device with rows of keys, often black with white letters.",
+  "Mechanical keyboard with raised, colorful keycaps and a USB cable.",
+  "Laptop keyboard with flat, low-profile keys and a touchpad below.",
+  "Wireless keyboard with a slim design and a battery compartment.",
+  "Ergonomic keyboard with a split, curved layout and a wrist rest."
+ ],
+ "lamp": [
+  "A glowing bulb atop a slender metal or wooden stand with a shade.",
+  "A table lamp with a fabric shade, often on a desk or nightstand.",
+  "A floor lamp with a tall pole and a wide, conical shade.",
+  "A decorative lamp with a glass or crystal base and a patterned shade.",
+  "A modern LED lamp with a sleek, minimalist design and a bright beam."
+ ],
+ "lawn_mower": [
+  "A push mower with a red or green metal body and a handlebar.",
+  "A riding mower with a seat, steering wheel, and large rear wheels.",
+  "A robotic mower, small and round, often on a green lawn.",
+  "A gas-powered mower with a black engine and a grass catcher bag.",
+  "An electric mower with a cord or battery, compact and lightweight."
+ ],
+ "leopard": [
+  "A large cat with a golden coat covered in black rosettes.",
+  "A spotted feline with a long tail, often seen in trees or grass.",
+  "A muscular body, short legs, and a rounded head with dark spots.",
+  "A leopard crouching, showing its distinctive ring-like spots.",
+  "A leopard's face with amber eyes and a pattern of black spots."
+ ],
+ "lion": [
+  "A majestic cat with a golden mane around its head and neck.",
+  "A lioness with a tawny coat and no mane, sleek and powerful.",
+  "A male lion lying down, showing a thick, dark mane.",
+  "A lion's head with a broad nose, fierce eyes, and a mane.",
+  "A lion standing on a rock, its mane flowing in the wind."
+ ],
+ "lizard": [
+  "A small reptile with a long tail and four legs, often green or brown.",
+  "A gecko with sticky toe pads and a patterned, scaly skin.",
+  "A chameleon with a curled tail and color-changing body.",
+  "A skink with a shiny, smooth body and short limbs.",
+  "A lizard basking on a rock, with a distinct head and tail."
+ ],
+ "lobster": [
+  "A large marine crustacean with a dark red shell and long antennae.",
+  "A lobster with two large claws, a segmented body, and a fan tail.",
+  "A cooked lobster, bright red, with a curved body and claws.",
+  "A lobster on ice, showing its hard shell and jointed legs.",
+  "A lobster's claw, large and powerful, with a serrated edge."
+ ],
+ "man": [
+  "A human male with short hair, often wearing a shirt and trousers.",
+  "A man with a beard, glasses, and a casual jacket.",
+  "A man in a suit, standing upright, with a tie and dress shoes.",
+  "A man with a cap, jeans, and a t-shirt, smiling.",
+  "A man's face with stubble, a strong jaw, and a neutral expression."
+ ],
+ "maple_tree": [
+  "A tree with broad, lobed leaves that turn red or orange in autumn.",
+  "A tall tree with a rounded crown and distinctive five-pointed leaves.",
+  "A maple in fall, with vivid red and yellow foliage.",
+  "A tree with smooth gray bark and winged seeds (samaras).",
+  "A maple tree in a park, with a thick trunk and spreading branches."
+ ],
+ "motorcycle": [
+  "A two-wheeled vehicle with a fuel tank, handlebars, and a seat.",
+  "A sport bike with a sleek, aerodynamic fairing and a low seat.",
+  "A cruiser with a low-slung frame, wide handlebars, and chrome parts.",
+  "A dirt bike with knobby tires and a high exhaust pipe.",
+  "A motorcycle leaning into a turn, with a rider in a helmet."
+ ],
+ "mountain": [
+  "A tall, rocky peak with snow at the summit and steep slopes.",
+  "A range of mountains with jagged ridges and green valleys.",
+  "A single mountain with a conical shape and a rocky face.",
+  "A mountain with a glacier, showing blue ice and crevasses.",
+  "A mountain at sunset, with a silhouette and a clear sky."
+ ],
+ "mouse": [
+  "A small rodent with a pointed snout, round ears, and a long tail.",
+  "A gray or brown mouse with a furry body and whiskers.",
+  "A mouse on a kitchen floor, with a small body and beady eyes.",
+  "A white lab mouse with pink ears and a pink tail.",
+  "A mouse in a field, with a brown coat and a long, thin tail."
+ ],
+ "mushroom": [
+  "A fungus with a cap and a stem, often red with white spots.",
+  "A brown mushroom with a rounded cap and a thick stalk.",
+  "A cluster of small mushrooms on a log, with tan caps.",
+  "A mushroom with a flat, wide cap and gills underneath.",
+  "A delicate mushroom with a slender stem and a bell-shaped cap."
+ ],
+ "oak_tree": [
+  "A large tree with lobed leaves and a broad, spreading crown.",
+  "An oak with thick, rough bark and acorns on its branches.",
+  "A tree with dark green leaves that turn brown in autumn.",
+  "A massive oak with a wide trunk and gnarled branches.",
+  "An oak tree in a field, with a rounded canopy and sturdy limbs."
+ ],
+ "orange": [
+  "A round citrus fruit with a bright orange, dimpled skin.",
+  "An orange with a green leaf at the top, often in a bowl.",
+  "A sliced orange showing juicy segments and a white pith.",
+  "An orange on a tree branch, with a glossy, orange rind.",
+  "A pile of oranges, each with a slightly textured peel."
+ ],
+ "orchid": [
+  "A flower with three petals and a lip, often purple or white.",
+  "An orchid with a tall stem and multiple blooms, in a pot.",
+  "A delicate orchid with a complex structure and vibrant colors.",
+  "A white orchid with a yellow center and waxy petals.",
+  "An orchid in a greenhouse, with a curved stem and spotted petals."
+ ],
+ "otter": [
+  "A sleek, brown mammal with a long body, short legs, and a tail.",
+  "An otter floating on its back, with a furry face and whiskers.",
+  "A river otter with a dark coat and a long, muscular tail.",
+  "An otter on a rock, with a streamlined body and webbed feet.",
+  "A sea otter with a thick, fluffy coat, holding a shell."
+ ],
+ "palm_tree": [
+  "A tall tree with a single trunk and a crown of large, fan-shaped leaves.",
+  "A palm with a curved trunk and feathery fronds, often on a beach.",
+  "A coconut palm with a leaning trunk and clusters of coconuts.",
+  "A palm tree with a smooth, ringed trunk and a tuft of leaves.",
+  "A palm in a desert, with a slender trunk and sparse fronds."
+ ],
+ "pear": [
+  "A fruit with a rounded bottom and a narrower top, often green or yellow.",
+  "A pear with a brownish-green skin and a slight blush.",
+  "A pear on a branch, with a stem and a leaf.",
+  "A sliced pear showing white flesh and a central core.",
+  "A bowl of pears, each with a distinctive bell shape."
+ ],
+ "pickup_truck": [
+  "A vehicle with a cab and an open cargo bed at the back.",
+  "A pickup with a large bed, four doors, and a rugged look.",
+  "A truck with a chrome grille, big tires, and a tailgate.",
+  "A pickup truck on a dirt road, with a toolbox in the bed.",
+  "A compact pickup with a short bed and a sporty design."
+ ],
+ "pine_tree": [
+  "A conifer with needle-like leaves and a conical shape.",
+  "A pine with a straight trunk and whorled branches of needles.",
+  "A tree with cones and long, green needles, often in a forest.",
+  "A pine tree with a tall, narrow crown and scaly bark.",
+  "A pine in winter, with snow on its branches and a green hue."
+ ],
+ "squirrel": [
+  "Small rodent with bushy tail, often reddish-brown, perched on tree branch.",
+  "Furry body, pointed ears, long tail, seen in parks or forests.",
+  "Gray or brown fur, agile climber, holds nuts with front paws.",
+  "Compact body, large eyes, tail curled over back, on ground or tree.",
+  "Slender, quick-moving, with tufted ears, in woodland settings."
+ ],
+ "streetcar": [
+  "Long, articulated vehicle on rails, with windows and overhead wires.",
+  "Red or green body, multiple sections, runs on city tracks.",
+  "Boxy shape, metal exterior, trolley pole on top, in urban streets.",
+  "Single or double cars, with doors and lights, on rail lines.",
+  "Low-floor tram, colorful paint, wheels on tracks, near buildings."
+ ],
+ "sunflower": [
+  "Tall stem with large yellow flower head, dark center.",
+  "Bright yellow petals radiating around brown disc, on thick stalk.",
+  "Giant bloom facing sun, rough green leaves, in field or garden.",
+  "Golden petals, seed-filled center, tall and sturdy, often in rows.",
+  "Cheerful flower with brown core, yellow rays, on green stem."
+ ],
+ "sweet_pepper": [
+  "Glossy, bell-shaped fruit, red, yellow, or green, with stem.",
+  "Smooth skin, blocky shape, three or four lobes, on plant.",
+  "Shiny exterior, thick flesh, bright color, in grocery or garden.",
+  "Rounded, slightly ribbed, with green calyx, often in clusters.",
+  "Vibrant color, crisp texture, hollow inside, with seeds."
+ ],
+ "table": [
+  "Flat horizontal surface on legs, often wooden or metal.",
+  "Rectangular or round top, four legs, in dining room or office.",
+  "Smooth top, sturdy supports, may have drawers, in home.",
+  "Wood grain or painted finish, with chairs around, indoors.",
+  "Elevated platform, various sizes, for eating or working."
+ ],
+ "tank": [
+  "Armored vehicle with tracks and a large gun turret.",
+  "Green or camouflage, heavy metal, treads, on battlefield.",
+  "Boxy hull, rotating turret, cannon barrel, in military setting.",
+  "Massive, tracked, with sloped armor, often in dirt or mud.",
+  "Steel body, wide tracks, prominent gun, in war zone."
+ ],
+ "telephone": [
+  "Handheld device with earpiece and mouthpiece, on desk or wall.",
+  "Classic rotary or push-button, corded, in office or home.",
+  "Small plastic or metal unit, with keypad and receiver.",
+  "Modern smartphone or old landline, with screen or dial.",
+  "Communication tool, often black or white, on table or stand."
+ ],
+ "television": [
+  "Large rectangular screen with stand or wall mount, in living room.",
+  "Flat panel, black bezel, displays images, on cabinet.",
+  "Boxy CRT or slim LED, with remote, in entertainment center.",
+  "Bright screen, speakers, often mounted, in home or bar.",
+  "Electronic display, various sizes, with stand, in room."
+ ],
+ "tiger": [
+  "Large cat with orange fur and black stripes, in jungle.",
+  "Powerful body, white belly, striped coat, stalking prey.",
+  "Muscular, with round ears and long tail, in grass or forest.",
+  "Orange and black pattern, fierce eyes, in wildlife reserve.",
+  "Big feline, striped, with white face patches, in natural habitat."
+ ],
+ "tractor": [
+  "Farm vehicle with large rear wheels and front smaller ones.",
+  "Green or red body, exhaust pipe, attached to plow or trailer.",
+  "Sturdy, with roll bar, wide tires, in field or barn.",
+  "Diesel engine, high clearance, with hitch, in agriculture.",
+  "Rugged machine, often with cab, in rural landscape."
+ ],
+ "train": [
+  "Long series of connected cars on rails, with locomotive.",
+  "Metal body, windows, wheels on track, in station or countryside.",
+  "Streamlined front, multiple carriages, often with graffiti.",
+  "Passenger or freight, with coupling, on railway lines.",
+  "High-speed or commuter, with doors, on platform."
+ ],
+ "trout": [
+  "Freshwater fish with speckled body, often brown or rainbow.",
+  "Sleek, silvery with pink stripe, in stream or lake.",
+  "Spotted back, white belly, forked tail, in water.",
+  "Elongated, with small scales, near rocks or current.",
+  "Colorful, with dark spots, caught on line."
+ ],
+ "tulip": [
+  "Cup-shaped flower on tall green stem, with pointed petals.",
+  "Bright red, yellow, or pink bloom, in garden or vase.",
+  "Single flower atop stalk, smooth leaves, in spring.",
+  "Elegant, with layered petals, often in rows.",
+  "Colorful, with green foliage, in fields or pots."
+ ],
+ "turtle": [
+  "Reptile with hard shell, four legs, slow-moving, near water.",
+  "Domed carapace, scaly skin, webbed feet, on land or in pond.",
+  "Green or brown shell, head retractable, in sun or shade.",
+  "Aquatic or terrestrial, with beak, in nature or pet tank.",
+  "Rounded shell, patterned, with claws, on log or rock."
+ ],
+ "wardrobe": [
+  "Tall wooden cabinet with doors, for storing clothes.",
+  "Rectangular, with drawers and hanging space, in bedroom.",
+  "Dark wood or painted, with handles, against wall.",
+  "Large furniture piece, often with mirror, in room.",
+  "Enclosed storage, with shelves, in home."
+ ],
+ "whale": [
+  "Huge marine mammal, dark blue or gray, spouting water.",
+  "Massive body, flippers, tail flukes, in ocean.",
+  "Streamlined, with white belly, breaching surface.",
+  "Blue or humpback, with barnacles, in deep water.",
+  "Giant, with blowhole, swimming in sea."
+ ],
+ "willow_tree": [
+  "Tree with drooping branches and narrow leaves, near water.",
+  "Slender, weeping form, green foliage, in park or riverbank.",
+  "Trunk with hanging twigs, light green, in wetland.",
+  "Graceful, with long catkins, in spring.",
+  "Soft, flexible branches, often by pond."
+ ],
+ "wolf": [
+  "Wild canine with gray or white fur, pointed ears, in forest.",
+  "Pack animal, bushy tail, yellow eyes, in snow or woods.",
+  "Lean body, thick coat, howling at moon, in wilderness.",
+  "Gray or black, with long snout, in pack or alone.",
+  "Fierce, with sharp teeth, in natural habitat."
+ ],
+ "woman": [
+  "Adult female human, with long hair or styled, in clothing.",
+  "Curvy figure, often with makeup, in various settings.",
+  "Wearing dress or blouse, with accessories, in urban or home.",
+  "Smiling, with expressive eyes, in portrait or group.",
+  "Standing or sitting, with hands, in daily life."
+ ],
+ "worm": [
+  "Long, thin, legless invertebrate, pink or brown, in soil.",
+  "Segmented body, moist, wriggling, on ground or in dirt.",
+  "Cylindrical, soft, with no eyes, in garden or compost.",
+  "Small, coiled, reddish, under rocks or in earth.",
+  "Slimy, wiggly, with rings, in nature or bait."
+ ],
+ "plain": [
+  "Flat, open expanse of land with no trees or buildings.",
+  "Vast, level grassland stretching to the horizon, often golden or green.",
+  "Smooth, treeless terrain with low vegetation, sometimes dotted with shrubs.",
+  "Wide, unobstructed view of grassy or barren earth under open sky.",
+  "Uniform, featureless landscape with subtle color variations and no landmarks."
+ ],
+ "plate": [
+  "Round, flat dish with a raised rim, often white or patterned.",
+  "Circular ceramic surface, sometimes with a decorative border or glaze.",
+  "Shallow, disc-shaped tableware with a smooth, glossy finish.",
+  "Flat, round serving vessel with a central depression and edge.",
+  "Round, rigid platter, typically pale or colored, with a subtle sheen."
+ ],
+ "poppy": [
+  "Bright red flower with four large, overlapping petals and dark center.",
+  "Tall stem topped by a cup-shaped bloom, often scarlet or orange.",
+  "Delicate, papery petals in vivid red or pink around a black core.",
+  "Showy flower with crinkled petals and a prominent central seed pod.",
+  "Vibrant, saucer-like blossom on a slender green stalk, sometimes in fields."
+ ],
+ "porcupine": [
+  "Small, round-bodied rodent covered in sharp, dark quills.",
+  "Spiky animal with a brownish coat and long, pointed spines.",
+  "Stocky creature with a bristly back, short legs, and a blunt snout.",
+  "Quill-covered mammal, often seen climbing trees or foraging on ground.",
+  "Dark, prickly body with lighter face and feet, quills raised when alarmed."
+ ],
+ "possum": [
+  "Small, grayish marsupial with a pointed snout and hairless tail.",
+  "Furry, cat-sized animal with a white face and dark ears, often nocturnal.",
+  "Round-bodied creature with a long, scaly tail and sharp claws.",
+  "Pale, fluffy mammal with a pink nose and beady black eyes, often in trees.",
+  "Grey or brown possum with a bushy tail and prominent whiskers, sometimes on a branch."
+ ],
+ "rabbit": [
+  "Small furry mammal with long ears, round body, and cotton-like tail.",
+  "White or brown coat, pink nose, and large dark eyes in a field.",
+  "Hops on hind legs, ears upright, often seen nibbling grass.",
+  "Soft fur, short front legs, long back legs, and a fluffy tail.",
+  "Sits alert with ears perked, whiskers twitching, in a meadow."
+ ],
+ "raccoon": [
+  "Grayish furry animal with black mask around eyes and ringed tail.",
+  "Medium-sized, hunched posture, pointed snout, and striped tail.",
+  "Dark paws, light face with black patches, often near trash bins.",
+  "Thick fur, bushy tail with dark bands, and agile climbing body.",
+  "Rounded ears, white muzzle, and gray body with black facial markings."
+ ],
+ "ray": [
+  "Flat, diamond-shaped fish with wing-like fins and long thin tail.",
+  "Brown or gray top, pale underside, gliding over sandy seabed.",
+  "Broad pectoral fins, small eyes on top, and a whip-like tail.",
+  "Smooth skin, wide body, often buried in sand with eyes visible.",
+  "Flattened body with pointed wings, swimming gracefully in clear water."
+ ],
+ "road": [
+  "Paved gray or black strip with white or yellow lane markings.",
+  "Smooth asphalt surface, curving through landscape with edges.",
+  "Wide or narrow, with dashed center lines and solid side lines.",
+  "Dark tarmac, sometimes cracked, with roadside vegetation or barriers.",
+  "Straight or winding, with visible texture of gravel or asphalt."
+ ],
+ "rocket": [
+  "Tall cylindrical body with pointed nose, fins at base, and exhaust.",
+  "White or metallic tube with red or black markings, launching upward.",
+  "Streamlined shape, small windows, and plume of fire below.",
+  "Vertical on launch pad, with fuel tanks and engine nozzles visible.",
+  "Sleek projectile with aerodynamic fins, often against blue sky."
+ ],
+ "rose": [
+  "Velvety petals in spirals, red, pink, or white, atop thorny green stems.",
+  "A round bloom with layered, ruffled petals, often dewy in a garden.",
+  "Deep crimson or blush petals with a prominent central cone, on leafy stalks.",
+  "Fragrant, multi-petaled flower with a tight bud, surrounded by serrated leaves.",
+  "A cluster of soft, overlapping petals forming a cup, with a yellow center."
+ ],
+ "sea": [
+  "Vast, blue-green expanse with rolling waves and white foam crests.",
+  "Horizon of deep azure water, textured with ripples and glints of sunlight.",
+  "Endless body of water, dark navy near the horizon, turquoise near shore.",
+  "Choppy surface with whitecaps, stretching to a hazy distant line.",
+  "Calm, glassy water reflecting sky, with subtle color gradients from teal to indigo."
+ ],
+ "seal": [
+  "Sleek, gray-brown body with a rounded head, whiskers, and flippers, often on ice.",
+  "Streamlined, torpedo-shaped mammal with dark spots, lounging on a rocky shore.",
+  "Curved, glossy back and tail visible above water, with a dog-like face.",
+  "Plump, silvery body with a short snout and large dark eyes, resting on sand.",
+  "Smooth, wet fur, flippers spread, basking on a floating ice floe."
+ ],
+ "shark": [
+  "Streamlined, gray body with a tall dorsal fin slicing through water.",
+  "Torpedo-shaped fish with a pointed snout, gill slits, and a crescent tail.",
+  "Dark, rough-skinned predator with a white belly and multiple fins above surface.",
+  "Long, sleek silhouette with a triangular dorsal fin and a powerful tail fin.",
+  "Grey-blue body with a prominent, curved dorsal fin, often near the surface."
+ ],
+ "shrew": [
+  "Tiny, mouse-like mammal with a long pointed snout, tiny ears, and dense fur.",
+  "Small, brownish creature with a slender tail, scurrying through leaf litter.",
+  "Compact body, velvety fur, and a prominent, twitching nose, on the ground.",
+  "Miniature, dark-furred animal with a long, flexible muzzle and small eyes.",
+  "A tiny, fast-moving ball of fur with a pointed face and short legs, in undergrowth."
+ ],
+ "skunk": [
+  "Black body with two white stripes down the back, bushy tail",
+  "White stripe on head, black fur, small legs, pointed snout",
+  "Black and white contrasting fur, tail raised when alarmed",
+  "Stout body, short legs, long claws, white patch on forehead",
+  "Black fur with white dorsal stripes, seen in forests or fields"
+ ],
+ "skyscraper": [
+  "Tall vertical building with glass and steel facade",
+  "Rectangular tower with many windows, often tapering at top",
+  "Sleek high-rise with reflective surface, antenna on roof",
+  "Massive structure with multiple floors, concrete and glass",
+  "Narrow, towering silhouette against city skyline, lit windows"
+ ],
+ "snail": [
+  "Spiral shell on back, soft body, two tentacles on head",
+  "Brown or yellow coiled shell, slimy foot, small eyes",
+  "Round shell with whorls, body extends from base, trail of mucus",
+  "Conical or globular shell, pale body, moves slowly on leaves",
+  "Shell with distinct spiral pattern, wet skin, found on plants"
+ ],
+ "snake": [
+  "Long, legless body with scales, forked tongue",
+  "Cylindrical shape, smooth or patterned scales, no eyelids",
+  "Coiled or slithering, tapered head, often with diamond patterns",
+  "Elongated body, varying colors, scales reflect light, flicking tongue",
+  "Thin, flexible body, head distinct from neck, seen in grass"
+ ],
+ "spider": [
+  "Eight legs, two body parts, often with web",
+  "Round abdomen, small cephalothorax, hairy or shiny legs",
+  "Black or brown, with pattern on back, multiple eyes",
+  "Legs attached to front body, spinnerets at rear, web nearby",
+  "Small, oval body, long thin legs, often in corner of room"
+ ]
+}

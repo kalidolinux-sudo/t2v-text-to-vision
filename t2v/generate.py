@@ -21,20 +21,30 @@ def load_generator(path, device):
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, valid=tok.valid, **cfg).to(device)
     gen.load_state_dict(ck["generator"])
     gen.prompt_ensemble = ck.get("prompt_ensemble", False)
+    gen.descriptions = ck.get("descriptions")
     gen.arch = ck["arch"]
     gen.eval()
     return gen, tok, ck
 
 
 @torch.no_grad()
-def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None):
-    """Weights for `n` models classifying `class_names` (in order). Returns (n, P) flat vectors."""
+def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None):
+    """Weights for `n` models classifying `class_names` (in order). Returns (n, P) flat vectors.
+    For a generator trained with descriptions, each class is described visually before it is embedded:
+    `descriptions` (e.g. from the request parser) first, then the training set's, then the LLM."""
     K = tok.K
     if len(class_names) > K:
         raise ValueError(f"at most {K} classes")
     dev = tok.idx.device
     if emb is None:
-        emb = embed_names(class_names, dev, ensemble=getattr(gen, "prompt_ensemble", False))
+        descs = None
+        if getattr(gen, "descriptions", None) is not None:
+            from .describe import describe
+            descs = {c: (descriptions or {}).get(c) or gen.descriptions.get(c) for c in class_names}
+            missing = [c for c, d in descs.items() if not d]
+            if missing:
+                descs.update(describe(missing))
+        emb = embed_names(class_names, dev, ensemble=getattr(gen, "prompt_ensemble", False), descriptions=descs)
     full = torch.zeros(n, K, emb.shape[1], device=dev)
     full[:, :len(class_names)] = emb
     mask = torch.zeros(n, K, dtype=torch.bool, device=dev)
@@ -140,7 +150,7 @@ def main():
     a = p.parse_args()
     dev = pick_device(a.device)
     gen, tok, ck = load_generator(a.ckpt, dev)
-    emb = None
+    emb, info = None, {}
     if a.image_dir:
         classes, images = load_image_dir(a.image_dir)
         emb = embed_images(images, dev)
@@ -148,10 +158,13 @@ def main():
     elif a.prompt:
         classes, info = parse_classes(a.prompt, tok.K)
         print(f"classes ({info['source']}): {classes}")
+        for c, d in (info.get("descriptions") or {}).items():
+            print(f"  {c}: {d}")
     else:
         raise SystemExit("give --prompt or --image_dir")
     t0 = time.time()
-    flat = generate_flat(gen, tok, classes, steps=a.steps, emb=emb)[0]
+    flat = generate_flat(gen, tok, classes, steps=a.steps, emb=emb,
+                         descriptions=(info.get("descriptions") if a.prompt else None))[0]
     dt = time.time() - t0
     model = build_model(ck["arch"], flat, len(classes))
     onnx_path = export(model, classes, ck["arch"], a.out)
