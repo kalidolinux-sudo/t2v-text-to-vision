@@ -31,7 +31,7 @@ def load_generator(path, device):
 
 @torch.no_grad()
 def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None,
-                  amp=False, body_noise=1.0):
+                  amp=False, body_noise=1.0, gate=None):
     """Weights for `n` models classifying `class_names` (in order). Returns (n, P) flat vectors.
     For a generator trained with descriptions, each class is described visually before it is embedded:
     `descriptions` (e.g. from the request parser) first, then the training set's, then the LLM."""
@@ -55,6 +55,13 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
     tokens = gen.sample(full, mask, steps=steps, amp=amp, body_noise=body_noise)
     flat = tok.decode(tokens, num_classes=len(class_names))
     if getattr(gen, "semantic_W", None) is not None:  # rows = semantic prior from the class text + generated correction
+        if gate is not None:
+            # known-class gate: keep the generated correction only for classes the generator was trained on
+            # (CLIP similarity >= gate to a training class); for new classes it tends to add a remembered
+            # correction of some known class, so they get the semantic prior alone
+            known = (emb @ gen.seen_emb.T).max(1).values >= gate
+            corr = target.head_rows(gen.arch, flat)[:, :len(class_names)]
+            flat = target.add_head_rows(gen.arch, flat, corr * (~known)[None, :, None], sign=-1.0)
         flat = target.add_head_rows(gen.arch, flat, (emb @ gen.semantic_W)[None].expand(n, -1, -1))
     arch = arch or getattr(gen, "arch", None)
     if arch and target.has_prior(arch):
