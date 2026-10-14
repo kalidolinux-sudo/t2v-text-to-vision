@@ -80,6 +80,33 @@ With ε-prediction, the first DDIM step divides by √ᾱ_T ≈ 5·10⁻⁵ and 
 by about 800×. The sampler now clips the x₀ estimate to the zoo's normalised range and uses
 x₀-prediction by default.
 
+## ResNet-20 on a free GPU (RPG scale)
+
+This run used Google Colab with a T4 GPU. Every one of the 274,042 parameters is generated, about 50×
+the CNN above. The zoo has 300 tasks, and the generator trained for 3,000 steps in 7 minutes
+(`notebooks/t2v_colab_fast.py`, then `notebooks/t2v_colab_retrain_v4.py`).
+
+| Test tasks (30 each) | **T2V generated** | Oracle (fine-tuned) | Classifier selection | Chance |
+|---|---|---|---|---|
+| Seen classes | **73.9%** | 89.3% | 85.9% | 21.5% |
+| Half unseen | **49.4%** | 79.8% | n/a | 10.0% |
+| All unseen | **33.0%** | 78.3% | n/a | 10.0% |
+
+Generating one full ResNet-20 takes 0.12 s. Tina generates only the ~640-parameter classifier of a
+ResNet-20. T2V generates the whole network.
+
+Three things it took to get there, all now options in `t2v.train_gen`:
+
+- **`--norm element`**: body weights are generated as a deviation from the zoo's mean model. With
+  per-tensor normalisation the loss plateaued at 0.44. A noise test explains why: ResNet-20 collapses
+  to chance once weight errors pass about 2× the zoo's per-weight spread, which per-tensor units
+  easily exceed.
+- **`--head_weight 10`**: classifier rows are 10 of 364 tokens. With uniform token sampling the body
+  came out right (with the true head it matched the oracle), but the generated class rows were nearly
+  identical and accuracy sat at chance. Always including the rows and up-weighting them fixed it:
+  22% → 73.9%.
+- **`--fp16` + MLP denoiser**: 7.6 steps/s on a T4, against 1 step/s with the conv denoiser in fp32.
+
 ## Run it
 
 ```bash
