@@ -1,0 +1,159 @@
+{
+ "eval_seen": {
+  "1_conditioning": {
+   "right_classes": 0.6914,
+   "wrong_classes": 0.09252,
+   "chance": 0.1
+  },
+  "2_equivariance": {
+   "original_order": 0.6914,
+   "reversed_order": 0.69316
+  },
+  "3_body_vs_head": {
+   "fine-tuned (oracle)": 0.7180000030994416,
+   "generated body + generated head": 0.6914,
+   "generated body + oracle head": 0.70808,
+   "oracle body + generated head": 0.69804,
+   "zoo-mean body + generated head": 0.6934
+  },
+  "4_layer_errors": {
+   "mean": 0.4894780218601227,
+   "worst_5": {
+    "layers.8.bn1.weight": 1.1513804197311401,
+    "layers.7.bn1.weight": 1.1297760009765625,
+    "layers.7.conv1.weight": 1.1242303848266602,
+    "layers.7.conv2.weight": 1.1235337257385254,
+    "layers.8.conv1.weight": 1.1182607412338257
+   }
+  },
+  "5_diversity": {
+   "spread_across_noise": 0.0003938499830837827,
+   "spread_across_tasks": 0.01406550221145153,
+   "accuracy_range_across_noise": 0.012499999999999997
+  },
+  "6_memorisation_rows": {
+   "row_distance_to_oracle": 3.1418164002895357,
+   "row_distance_to_nearest_train_row": 2.647425535440445,
+   "rows_closer_to_a_train_row": 0.962
+  },
+  "4b_body_vs_mean_model": {
+   "generated_body_error": 0.49453797936439514,
+   "zoo_mean_body_error": 0.4939689636230469
+  },
+  "8_semantic_head_prior": {
+   "lambda (5-fold CV on seen classes)": 1.0,
+   "cv_row_cosine": 0.6916864156723023,
+   "ridge head + zoo-mean body": 0.60016,
+   "ridge head + generated body": 0.602,
+   "T2V (generated head + body)": 0.6914
+  }
+ },
+ "eval_novel": {
+  "1_conditioning": {
+   "right_classes": 0.59076,
+   "wrong_classes": 0.0998,
+   "chance": 0.1
+  },
+  "2_equivariance": {
+   "original_order": 0.59076,
+   "reversed_order": 0.59236
+  },
+  "3_body_vs_head": {
+   "fine-tuned (oracle)": 0.7369599997997284,
+   "generated body + generated head": 0.59076,
+   "generated body + oracle head": 0.71572,
+   "oracle body + generated head": 0.6144,
+   "zoo-mean body + generated head": 0.5932
+  },
+  "4_layer_errors": {
+   "mean": 0.5093370079994202,
+   "worst_5": {
+    "layers.8.bn2.weight": 1.8073757886886597,
+    "layers.8.bn1.weight": 1.4106106758117676,
+    "layers.7.bn2.weight": 1.3344714641571045,
+    "layers.7.bn1.weight": 1.3124996423721313,
+    "fc (classifier rows)": 1.280578374862671
+   }
+  },
+  "5_diversity": {
+   "spread_across_noise": 0.0008242750336648896,
+   "spread_across_tasks": 0.010387304238975048,
+   "accuracy_range_across_noise": 0.034749999999999975
+  },
+  "6_memorisation_rows": {
+   "row_distance_to_oracle": 13.33843645477295,
+   "row_distance_to_nearest_train_row": 10.599036225318908,
+   "rows_closer_to_a_train_row": 0.768
+  },
+  "4b_body_vs_mean_model": {
+   "generated_body_error": 0.4875504672527313,
+   "zoo_mean_body_error": 0.48420241475105286
+  },
+  "7_unseen_classes": {
+   "recall_vs_similarity_correlation": -0.2363971620798111,
+   "recall_far_from_seen (lower half)": 0.645425021648407,
+   "recall_close_to_seen (upper half)": 0.5373912453651428
+  },
+  "8_semantic_head_prior": {
+   "lambda (5-fold CV on seen classes)": 1.0,
+   "cv_row_cosine": 0.6916864156723023,
+   "ridge head + zoo-mean body": 0.5943999999999999,
+   "ridge head + generated body": 0.5945199999999999,
+   "T2V (generated head + body)": 0.59076
+  }
+ },
+ "eval_novel_hard": {
+  "1_conditioning": {
+   "right_classes": 0.42576,
+   "wrong_classes": 0.09459999999999999,
+   "chance": 0.1
+  },
+  "2_equivariance": {
+   "original_order": 0.42576,
+   "reversed_order": 0.43095999999999995
+  },
+  "3_body_vs_head": {
+   "fine-tuned (oracle)": 0.6326400011777877,
+   "generated body + generated head": 0.42576,
+   "generated body + oracle head": 0.59944,
+   "oracle body + generated head": 0.44448,
+   "zoo-mean body + generated head": 0.42872
+  },
+  "4_layer_errors": {
+   "mean": 0.528563916683197,
+   "worst_5": {
+    "layers.8.bn2.weight": 1.5711767673492432,
+    "layers.8.bn2.running_mean": 1.5569556951522827,
+    "layers.8.bn1.weight": 1.4591708183288574,
+    "layers.8.bn1.bias": 1.3518545627593994,
+    "layers.7.bn1.weight": 1.3099831342697144
+   }
+  },
+  "5_diversity": {
+   "spread_across_noise": 0.0009461950976401567,
+   "spread_across_tasks": 0.008457564748823643,
+   "accuracy_range_across_noise": 0.029999999999999992
+  },
+  "6_memorisation_rows": {
+   "row_distance_to_oracle": 13.448207412719727,
+   "row_distance_to_nearest_train_row": 12.565488103866578,
+   "rows_closer_to_a_train_row": 0.634
+  },
+  "4b_body_vs_mean_model": {
+   "generated_body_error": 0.5068985223770142,
+   "zoo_mean_body_error": 0.5039370059967041
+  },
+  "7_unseen_classes": {
+   "recall_vs_similarity_correlation": -0.026143992319703102,
+   "recall_far_from_seen (lower half)": 0.41743800044059753,
+   "recall_close_to_seen (upper half)": 0.4335658848285675
+  },
+  "8_semantic_head_prior": {
+   "lambda (5-fold CV on seen classes)": 1.0,
+   "cv_row_cosine": 0.6916864156723023,
+   "ridge head + zoo-mean body": 0.46704,
+   "ridge head + generated body": 0.46228,
+   "T2V (generated head + body)": 0.42576
+  }
+ }
+}
