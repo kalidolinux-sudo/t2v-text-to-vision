@@ -75,3 +75,13 @@ def test_offline_request_parser():
     assert _fallback("I need a classifier to distinguish golden retrievers from tabby cats", 10) == ["golden retriever", "tabby cat"]
     assert _fallback("koala, banjo, ostrich", 10) == ["koala", "banjo", "ostrich"]
     assert _fallback("running shoes, sandals and backpacks", 2) == ["running shoe", "sandal"]
+
+
+def test_tokenfactory_config(monkeypatch):
+    from t2v import tokenfactory as tf
+    monkeypatch.delenv("TOKENFACTORY_API_KEY", raising=False)
+    assert tf.config() is None and tf.chat([{"role": "user", "content": "hi"}]) is None  # offline: no call made
+    monkeypatch.setenv("TOKENFACTORY_API_KEY", "test-key")
+    monkeypatch.delenv("TOKENFACTORY_BASE_URL", raising=False)
+    monkeypatch.delenv("TOKENFACTORY_MODEL", raising=False)
+    assert tf.config() == ("test-key", tf.DEFAULT_BASE_URL, tf.DEFAULT_MODEL)

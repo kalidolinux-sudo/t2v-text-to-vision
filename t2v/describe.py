@@ -13,6 +13,8 @@ import re
 
 import requests
 
+from . import tokenfactory
+
 SYSTEM = (
     "You write visual descriptions of object classes for an image classifier. For each class, give {n} "
     "short, different descriptions (8-15 words each) of what it looks like in a photo: shape, colour, "
@@ -22,16 +24,7 @@ SYSTEM = (
 
 
 def _chat(messages, timeout=120):
-    key = os.environ.get("TOKENFACTORY_API_KEY")
-    base = os.environ.get("TOKENFACTORY_BASE_URL")
-    model = os.environ.get("TOKENFACTORY_MODEL")
-    if not (key and base and model):
-        return None
-    r = requests.post(base.rstrip("/") + "/chat/completions", headers={"Authorization": f"Bearer {key}"},
-                      json={"model": model, "temperature": 0.3, "max_tokens": 4000,
-                            "response_format": {"type": "json_object"}, "messages": messages}, timeout=timeout)
-    r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"]
+    return tokenfactory.chat(messages, temperature=0.3, max_tokens=4000, timeout=timeout)
 
 
 def describe(names, n=5, batch=20, cache=None):

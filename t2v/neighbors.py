@@ -17,6 +17,8 @@ import requests
 import torch
 import torch.nn.functional as F
 
+from . import tokenfactory
+
 SYSTEM = (
     "You are a computer-vision expert. For each target class you get a list of candidate classes. Pick "
     "the 1 to 3 candidates that look most similar to the target in a small photo (overall shape, texture, "
@@ -27,14 +29,7 @@ SYSTEM = (
 
 
 def _chat(messages, timeout=180):
-    key, base, model = (os.environ.get(k) for k in ("TOKENFACTORY_API_KEY", "TOKENFACTORY_BASE_URL", "TOKENFACTORY_MODEL"))
-    if not (key and base and model):
-        return None
-    r = requests.post(base.rstrip("/") + "/chat/completions", headers={"Authorization": f"Bearer {key}"},
-                      json={"model": model, "temperature": 0, "max_tokens": 3000,
-                            "response_format": {"type": "json_object"}, "messages": messages}, timeout=timeout)
-    r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"]
+    return tokenfactory.chat(messages, temperature=0, max_tokens=3000, timeout=timeout)
 
 
 def shortlist(target_emb, cand_emb, cand_names, k=20, exclude=None):

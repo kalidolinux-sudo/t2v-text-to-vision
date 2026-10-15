@@ -15,6 +15,14 @@
   <a href="https://github.com/kalidolinux-sudo/t2v-text-to-vision/releases/tag/1.0"><img alt="Model: T2V-1K" src="https://img.shields.io/badge/model-T2V--1K-success.svg"></a>
 </p>
 
+<p align="center"><img src="docs/demo.gif" alt="T2V demo: weights generated from text, then tested on real ImageNet photos" width="100%"></p>
+
+<p align="center">
+  <a href="https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-iii/delta-team/t2v-text-to-vision"><b>Video, slides and submission (lablab.ai)</b></a> ·
+  <a href="https://colab.research.google.com/github/kalidolinux-sudo/t2v-text-to-vision/blob/main/notebooks/T2V_demo.ipynb"><b>Run it in Colab</b></a> ·
+  <a href="#the-role-of-amd"><b>The role of AMD</b></a>
+</p>
+
 <p align="center"><img src="docs/architecture.svg" alt="T2V architecture" width="100%"></p>
 
 ```text
@@ -25,7 +33,13 @@
   → ResNet-20 with all 274,042 weights generated  →  weights.pt / model.onnx
 ```
 
-**Contents:** [Results](#t2v-1k-results-on-imagenet-1k) · [How it works](#how-it-works) ·
+> **Built on AMD.** Every request goes through an agent on **AMD TokenFactory** (DeepSeek-V4-Flash). It
+> understands the request, writes the visual descriptions the generator is conditioned on, and reasons by
+> analogy for classes the generator has never seen. Watch it work live with one command:
+> `python -m t2v.agent "I need a model that tells zebras, grand pianos and killer whales apart"`
+> ([what it prints](#the-role-of-amd)).
+
+**Contents:** [Results](#t2v-1k-results-on-imagenet-1k) · [The role of AMD](#the-role-of-amd) · [How it works](#how-it-works) ·
 [Quick start](#quick-start) · [Reproduce](#reproduce) · [Command-line pipeline](#command-line-pipeline) ·
 [Repository layout](#repository-layout) · [Limitations](#limitations) · [References](#references) · [How this was built](#how-this-was-built)
 
@@ -97,6 +111,37 @@ At build time TokenFactory wrote 5,000 visual descriptions (5 for each of the 1,
 200 visual-analogy judgements, all shipped in `data/`. At run time every request goes through it, and so does every class
 name it has not described before.
 
+**Where it is in the code.** All agent calls go through one module, [`t2v/tokenfactory.py`](t2v/tokenfactory.py)
+(OpenAI-compatible chat completions; only `TOKENFACTORY_API_KEY` is needed).
+
+| Agent step | Code | Output used by the generator |
+|---|---|---|
+| 1 Understand | [`t2v/llm.py`](t2v/llm.py) `parse_classes` | English class names, in the app, the notebook and the CLI |
+| 2 Describe | [`t2v/describe.py`](t2v/describe.py) `describe` | the CLIP condition: name + 5 descriptions per class ([`data/descriptions_imagenet.json`](data/descriptions_imagenet.json)) |
+| 3 Analogise | [`t2v/neighbors.py`](t2v/neighbors.py) `ask` | weighted look-alike classes whose learned rows are blended into a new class's row ([`data/neighbors_imagenet.json`](data/neighbors_imagenet.json)) |
+
+**See it live.** [`t2v/agent.py`](t2v/agent.py) runs the three steps on any request. A real run (15 October 2026):
+
+```text
+$ python -m t2v.agent "أبي نموذج يميز بين القطط والكلاب والكابيبارا"
+agent: DeepSeek-V4-Flash on AMD TokenFactory
+
+1 understand  'أبي نموذج يميز بين القطط والكلاب والكابيبارا'
+  -> ['cat', 'dog', 'capybara']   (Distinguish between cats, dogs, and capybaras in photos.)
+
+2 describe
+  cat: Small to medium size, pointed ears, whiskers, and a long tail.
+  capybara: Large rodent with a blocky, rectangular head and blunt snout.
+  …
+3 analogise
+  capybara looks like: guinea pig 40%, beaver 30%, marmot 30%
+  …
+2 TokenFactory calls
+```
+
+Without a key, the app and the notebook still run on the outputs TokenFactory already produced (stored in
+`data/` and in the checkpoint); add the key to see the agent answer new requests live.
+
 The whole system (1,000-model zoo, 400 test models, generator training, evaluation) was built end to end
 on a single Google Colab T4 GPU in 72 minutes (`notebooks/t2v_colab_final_imagenet.py`), with Google Drive
 holding checkpoints so finished stages survive disconnects. The code uses only standard PyTorch operations and
@@ -165,9 +210,8 @@ Without Docker:
 
 ```bash
 pip install -r requirements.txt
-export TOKENFACTORY_API_KEY=...            # optional; never commit it
-export TOKENFACTORY_BASE_URL=https://developer.amd.com.cn/radeon/api/v1
-export TOKENFACTORY_MODEL=DeepSeek-V4-Flash
+export TOKENFACTORY_API_KEY=...            # optional; never commit it (base URL and model have defaults)
+python -m t2v.agent "zebras, grand pianos, killer whales"   # the AMD TokenFactory agent, live
 python app.py                              # Gradio demo; downloads checkpoints/t2v_1k.pt on first start
 python -m t2v.generate --ckpt checkpoints/t2v_1k.pt --prompt "koala, banjo, ostrich, pizza"   # after that
 ```
@@ -228,12 +272,14 @@ t2v/                    the package
   train_gen.py            generator training (semantic prior, neighbour blend, known-class gate)
   generate.py             text -> weights -> PyTorch / ONNX model
   evaluate.py diagnose.py accuracy against baselines; eight inference-only probes
-  llm.py describe.py neighbors.py   the TokenFactory agent: parse, describe, analogise
+  tokenfactory.py         the AMD TokenFactory client used by every agent call
+  llm.py describe.py neighbors.py   the agent: understand, describe, analogise
+  agent.py                the agent live in one command (python -m t2v.agent "...")
 app.py  Dockerfile      Gradio demo; CPU or ROCm container
 data/                   ImageNet-1k names and split; TokenFactory descriptions and analogies
 notebooks/              Colab demo notebook (T2V_demo.ipynb) and one-cell Colab runs
 results/                logs and diagnostics of the T2V-1K run
-docs/                   experiment log and architecture diagram
+docs/                   experiment log, architecture diagram, demo GIF
 checkpoints/            CIFAR-100 generator (the ImageNet-1k one comes from the release)
 tests/                  unit tests (pytest, CPU, no downloads)
 ```
