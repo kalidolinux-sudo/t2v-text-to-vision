@@ -168,8 +168,8 @@ pip install -r requirements.txt
 export TOKENFACTORY_API_KEY=...            # optional; never commit it
 export TOKENFACTORY_BASE_URL=https://developer.amd.com.cn/radeon/api/v1
 export TOKENFACTORY_MODEL=DeepSeek-V4-Flash
-python app.py                              # Gradio demo
-python -m t2v.generate --ckpt checkpoints/t2v_1k.pt --prompt "koala, banjo, ostrich, pizza"
+python app.py                              # Gradio demo; downloads checkpoints/t2v_1k.pt on first start
+python -m t2v.generate --ckpt checkpoints/t2v_1k.pt --prompt "koala, banjo, ostrich, pizza"   # after that
 ```
 
 Without a TokenFactory key everything still runs: requests are split on commas, and the descriptions and
