@@ -70,7 +70,7 @@ def main():
         print(f"{a.ckpt} not available, using {FALLBACK}")
         a.ckpt = FALLBACK
     gen, tok, ck = load_generator(a.ckpt, dev)
-    agent = "AMD TokenFactory" if os.environ.get("TOKENFACTORY_API_KEY") else "offline (no TokenFactory key set)"
+    agent = "AMD TokenFactory" if os.environ.get("TOKENFACTORY_API_KEY") else "offline (no TokenFactory key set: write English class names, e.g. \"cat, dog\")"
     state = {}
 
     def understand(prompt):

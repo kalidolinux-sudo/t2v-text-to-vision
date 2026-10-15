@@ -4,7 +4,7 @@ Configure with environment variables (never commit the key):
     TOKENFACTORY_API_KEY   your key
     TOKENFACTORY_BASE_URL  e.g. https://<tokenfactory-host>/v1  (copy it from the TokenFactory page)
     TOKENFACTORY_MODEL     a chat model id listed by the endpoint
-Without them, the prompt is split on commas / "and" / "و" instead.
+Without them, the prompt is split on commas / "and" / "و" instead, and request phrasing ("I want a model that\nseparates ...") and plurals are stripped.
 """
 import json
 import os
@@ -24,13 +24,39 @@ SYSTEM = (
 )
 
 
+# words that only phrase the request ("I want a model that separates ... from ..."), dropped offline
+_FILLER = set("""i we you me us please can could would will want wanna need needs like id i'd make build create give
+get train a an the some my our model models classifier classifiers network ai app system that which who to for
+separate separates distinguish distinguishes differentiate tell tells apart classify classifies recognise recognize
+recognises recognizes detect detects identify identifies sort sorts between from vs versus among images image photos
+photo pictures picture of kinds types""".split())
+
+
+def _singular(word):
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 4 and word.endswith("es") and word[:-2].endswith(("s", "x", "ch", "sh")):
+        return word[:-2]
+    if len(word) > 3 and word.endswith("s") and not word.endswith(("ss", "us", "is")):
+        return word[:-1]
+    return word
+
+
 def _fallback(prompt, k):
-    parts = re.split(r"\s*(?:,|،|;|\n|\band\b|\bor\b|\s+و\s+|\s+أو\s+)\s*", prompt)
+    parts = re.split(r"\s*(?:,|،|;|\n|\band\b|\bor\b|\bvs\.?\b|\bversus\b|\bfrom\b|\s+و\s+|\s+أو\s+)\s*", prompt)
     names = []
     for part in parts:
-        part = part.strip(" .:-").lower()
-        if part and part not in names:
-            names.append(part)
+        words = re.sub(r"[^\w\s'-]", " ", part.lower()).split()
+        while words and words[0] in _FILLER:
+            words.pop(0)
+        while words and words[-1] in _FILLER:
+            words.pop()
+        if not words:
+            continue
+        words[-1] = _singular(words[-1])
+        name = " ".join(words)
+        if name not in names:
+            names.append(name)
     return names[:k]
 
 

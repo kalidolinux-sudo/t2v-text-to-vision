@@ -67,3 +67,11 @@ def test_neighbour_rows():
     emb = torch.eye(3)
     mixed = clip_mix(emb[:1], emb, [0, 1, 2], table, k=1, exclude=[0])  # its own class is excluded
     assert mixed.shape == (1, 4)
+
+
+def test_offline_request_parser():
+    from t2v.llm import _fallback
+    assert _fallback("i wanna a model that separate cat and dogs", 10) == ["cat", "dog"]
+    assert _fallback("I need a classifier to distinguish golden retrievers from tabby cats", 10) == ["golden retriever", "tabby cat"]
+    assert _fallback("koala, banjo, ostrich", 10) == ["koala", "banjo", "ostrich"]
+    assert _fallback("running shoes, sandals and backpacks", 2) == ["running shoe", "sandal"]
