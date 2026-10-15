@@ -41,7 +41,7 @@
 
 **Contents:** [Results](#t2v-1k-results-on-imagenet-1k) · [The role of AMD](#the-role-of-amd) · [How it works](#how-it-works) ·
 [Quick start](#quick-start) · [Reproduce](#reproduce) · [Command-line pipeline](#command-line-pipeline) ·
-[Repository layout](#repository-layout) · [Limitations](#limitations) · [References](#references) · [How this was built](#how-this-was-built)
+[Repository layout](#repository-layout) · [Limitations](#limitations) · [References](#references)
 
 ## T2V-1K: results on ImageNet-1k
 
@@ -307,19 +307,6 @@ tests/                  unit tests (pytest, CPU, no downloads)
   [arXiv:2209.12892](https://arxiv.org/abs/2209.12892)
 - S. Pratt et al. *What does a platypus look like? Generating customized prompts for zero-shot image
   classification* (CuPL). [arXiv:2209.03320](https://arxiv.org/abs/2209.03320)
-
-## How this was built
-
-T2V was built by its author with the help of AI assistants, and every result in this repository comes
-from code that was actually run (logs in [`results/`](results/)):
-
-- **Gemini** (Google's latest thinking model) helped formulate the experiments and assisted with the
-  research.
-- **Claude** (Anthropic) wrote much of the code and documentation under the author's direction.
-- **The author** directed the project, ran the training on Google Colab, and reviewed the code, the
-  experiments and the claims made here.
-- **AMD TokenFactory** (DeepSeek-V4-Flash) is part of the system itself, as described
-  [above](#the-role-of-amd).
 
 ## License
 
