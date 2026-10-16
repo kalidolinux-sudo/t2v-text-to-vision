@@ -1,0 +1,36 @@
+task  0  base 0.536  +contrast 0.534  diff -0.002  pairs [('violin', 'flute'), ('ostrich', 'Arabian camel'), ('mantis', 'ostrich')]
+task  1  base 0.564  +contrast 0.568  diff +0.004  pairs [('trombone', 'banjo'), ('CD player', 'banjo'), ('sunglasses', 'space bar')]
+task  2  base 0.584  +contrast 0.584  diff +0.000  pairs [('African elephant', 'lion'), ('lion', 'leopard'), ('tiger cat', 'leopard')]
+task  3  base 0.526  +contrast 0.526  diff +0.000  pairs [('tiger cat', 'tiger'), ('zebra', 'tiger'), ('gorilla', 'tiger')]
+contrast: request failed (429 Client Error: Too Many Requests for url: https://developer.amd.com.cn/radeon/api/v1/chat/completions)
+task  4  base 0.548  +contrast 0.548  diff +0.000  pairs [('water buffalo', 'Boston bull'), ('American Staffordshire terrier', 'Boston bull'), ('banjo', 'bassoon')]
+task  5  base 0.588  +contrast 0.596  diff +0.008  pairs [('airliner', 'shield'), ('airliner', 'tiger'), ('killer whale', 'American black bear')]
+task  6  base 0.618  +contrast 0.620  diff +0.002  pairs [('spider monkey', 'orangutan'), ('Blenheim spaniel', 'Sussex spaniel'), ('sea lion', 'orangutan')]
+task  7  base 0.606  +contrast 0.604  diff -0.002  pairs [('water buffalo', 'American black bear'), ('barrel', 'trombone'), ('otter', 'American black bear')]
+task  8  base 0.662  +contrast 0.654  diff -0.008  pairs [('horse cart', 'hamper'), ('horse cart', 'cello'), ('hamper', 'mitten')]
+task  9  base 0.586  +contrast 0.584  diff -0.002  pairs [('violin', 'sax'), ('sax', 'space bar'), ('space bar', 'shoe shop')]
+task 10  base 0.520  +contrast 0.518  diff -0.002  pairs [('gorilla', 'brown bear'), ('sea lion', 'brown bear'), ('gorilla', 'spider monkey')]
+task 11  base 0.540  +contrast 0.544  diff +0.004  pairs [('violin', 'trombone'), ('horse cart', 'trombone'), ('koala', 'American black bear')]
+task 12  base 0.654  +contrast 0.650  diff -0.004  pairs [('cello', 'banjo'), ('freight car', 'space bar'), ('cello', 'folding chair')]
+task 13  base 0.590  +contrast 0.594  diff +0.004  pairs [('hamper', 'barrel'), ('harp', 'barrel'), ('harp', 'safety pin')]
+task 14  base 0.598  +contrast 0.596  diff -0.002  pairs [('canoe', 'plow'), ('iron', 'plow'), ('iron', 'lion')]
+task 15  base 0.648  +contrast 0.650  diff +0.002  pairs [('freight car', 'airliner'), ('flute', 'airliner'), ('African crocodile', 'tiger shark')]
+task 16  base 0.596  +contrast 0.596  diff +0.000  pairs [('lion', 'tiger'), ('CD player', 'tray'), ('killer whale', 'tiger')]
+task 17  base 0.512  +contrast 0.510  diff -0.002  pairs [('ice bear', 'hippopotamus'), ('mitten', 'sunglasses'), ('Arabian camel', 'hippopotamus')]
+task 18  base 0.470  +contrast 0.476  diff +0.006  pairs [('sea lion', 'otter'), ('shield', 'admiral'), ('wood rabbit', 'admiral')]
+task 19  base 0.448  +contrast 0.452  diff +0.004  pairs [('cornet', 'sax'), ('acoustic guitar', 'sax'), ('grand piano', 'acoustic guitar')]
+contrast: request failed (HTTPSConnectionPool(host='developer.amd.com.cn', port=443): Read timed out. (read timeout=120))
+task 20  base 0.586  +contrast 0.586  diff +0.000  pairs [('oboe', 'cornet'), ('safety pin', 'cornet'), ('barrel', 'cornet')]
+task 21  base 0.568  +contrast 0.572  diff +0.004  pairs [('horse cart', 'plow'), ('plow', 'electric guitar'), ('mitten', 'plow')]
+task 22  base 0.612  +contrast 0.612  diff +0.000  pairs [('bison', 'American black bear'), ('horse cart', 'folding chair'), ('half track', 'horse cart')]
+task 23  base 0.680  +contrast 0.680  diff +0.000  pairs [('horse cart', 'grand piano'), ('grand piano', 'space bar'), ('horse cart', 'barrel')]
+task 24  base 0.670  +contrast 0.668  diff -0.002  pairs [('spider monkey', 'ostrich'), ('leopard', 'tiger shark'), ('sandbar', 'mitten')]
+task 25  base 0.642  +contrast 0.642  diff +0.000  pairs [('electric guitar', 'iron'), ('Boston bull', 'iron'), ('iron', 'yawl')]
+task 26  base 0.596  +contrast 0.600  diff +0.004  pairs [('brown bear', 'bison'), ('gorilla', 'bison'), ('gorilla', 'brown bear')]
+task 27  base 0.686  +contrast 0.690  diff +0.004  pairs [('cello', 'harp'), ('dugong', 'sea lion'), ('sea lion', 'wood rabbit')]
+task 28  base 0.556  +contrast 0.554  diff -0.002  pairs [('Arabian camel', 'bison'), ('bison', 'tiger'), ('shield', 'puffer')]
+task 29  base 0.506  +contrast 0.496  diff -0.010  pairs [('panpipe', 'flute'), ('Indian elephant', 'tiger'), ('ice bear', 'Indian elephant')]
+
+POOL=all tasks=30  base 0.5832  +contrast 0.5835  diff +0.0003 ± 0.0007 (s.e.)  wins 11 losses 11
+TokenFactory calls 28, 316 s
+

@@ -1,9 +1,10 @@
 """AMD TokenFactory: the LLM endpoint behind every agent step of T2V (OpenAI-compatible chat completions).
 
-All three agent roles go through `chat` here:
+All agent roles go through `chat` here:
     1 understand  t2v.llm.parse_classes   free-form request (any language) -> English class names
-    2 describe    t2v.describe.describe    class name -> visual descriptions (CuPL)
-    3 analogise   t2v.neighbors.ask        never-seen class -> weighted look-alike known classes
+    2 ground      t2v.ground.ground        user's words -> the generator's vocabulary (same category only)
+    3 describe    t2v.describe.describe    class name -> visual descriptions (CuPL)
+    4 analogise   t2v.neighbors.ask        never-seen class -> weighted look-alike known classes
 
 Only the key is required (never commit it):
     TOKENFACTORY_API_KEY    your key

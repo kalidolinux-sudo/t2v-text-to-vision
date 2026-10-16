@@ -85,3 +85,10 @@ def test_tokenfactory_config(monkeypatch):
     monkeypatch.delenv("TOKENFACTORY_BASE_URL", raising=False)
     monkeypatch.delenv("TOKENFACTORY_MODEL", raising=False)
     assert tf.config() == ("test-key", tf.DEFAULT_BASE_URL, tf.DEFAULT_MODEL)
+
+
+def test_ground_offline_keeps_names(monkeypatch):
+    from t2v.ground import ground
+    monkeypatch.delenv("TOKENFACTORY_API_KEY", raising=False)
+    vocab = ["killer whale", "tabby", "running shoe"]
+    assert ground(["Tabby", "orca"], vocab) == {"Tabby": "tabby", "orca": None}  # no key: no call, exact names only

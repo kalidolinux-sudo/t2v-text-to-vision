@@ -33,9 +33,10 @@
   → ResNet-20 with all 274,042 weights generated  →  weights.pt / model.onnx
 ```
 
-> **Built on AMD.** Every request goes through an agent on **AMD TokenFactory** (DeepSeek-V4-Flash). It
-> understands the request, writes the visual descriptions the generator is conditioned on, and reasons by
-> analogy for classes the generator has never seen. Watch it work live with one command:
+> **Built on AMD.** AMD TokenFactory (DeepSeek-V4-Flash) is inside T2V twice: its descriptions are the
+> condition the generator was **trained** on, and at run time an agent on it understands the request, grounds
+> the user's words in the generator's vocabulary, describes every class and reasons by analogy for classes
+> the generator has never seen. Watch it work live with one command:
 > `python -m t2v.agent "I need a model that tells zebras, grand pianos and killer whales apart"`
 > ([what it prints](#the-role-of-amd)).
 
@@ -106,10 +107,18 @@ in the product and when the system was built:
 | **Understands** a free-form request in any language and turns it into class names | only comma-separated English class lists work | Arabic request → 85.0% on real CIFAR-100 photos (stage 1) |
 | **Describes** every class visually (5 descriptions × 1,000 ImageNet classes, and live for new names) | the condition is the bare class name | +2.8 to +5.7 points (CIFAR-100 ResNet-20 ablation, 30 tasks per split) |
 | **Analogises**: picks the known classes a never-seen class looks like | rows of new classes come from text alone | +2.4 points on new ImageNet classes over the ridge prior (100 tasks); no gain when whole groups are held out |
+| **Grounds** the user's words in the vocabulary ("orcas" → killer whale, "sneakers" → running shoe), keeps broad names ("dogs") as new | a synonym is treated as a never-seen class | +1.0 ± 0.7 points on 20 tasks written with rare WordNet synonyms (12 wins, 6 losses; 121 of 200 names mapped exactly) |
 
-At build time TokenFactory wrote 5,000 visual descriptions (5 for each of the 1,000 ImageNet classes) and
-200 visual-analogy judgements, all shipped in `data/`. At run time every request goes through it, and so does every class
-name it has not described before.
+**AMD is inside the trained model, not only around it.** At build time TokenFactory wrote 5,000 visual
+descriptions (5 for each of the 1,000 ImageNet classes) and 200 visual-analogy judgements, all shipped in
+`data/`. The generator was trained on CLIP conditions built from those descriptions (`train_gen --descriptions`),
+the ridge prior from class text to classifier rows was fitted on them, and the analogy blend weight was chosen by
+cross-validation on TokenFactory's analogies for 100 validation classes. At run time every request goes through it,
+and so does every class name it has not described before.
+
+**Measured before shipping.** A fourth role was tried and dropped: contrastive descriptions for look-alike classes
+in the same request gave +0.03 ± 0.07 points (30 tasks), so the product does not use it
+([`experiments/`](experiments/), logs in [`results/agent_ab/`](results/agent_ab/)).
 
 **Where it is in the code.** All agent calls go through one module, [`t2v/tokenfactory.py`](t2v/tokenfactory.py)
 (OpenAI-compatible chat completions; only `TOKENFACTORY_API_KEY` is needed).
@@ -117,26 +126,31 @@ name it has not described before.
 | Agent step | Code | Output used by the generator |
 |---|---|---|
 | 1 Understand | [`t2v/llm.py`](t2v/llm.py) `parse_classes` | English class names, in the app, the notebook and the CLI |
-| 2 Describe | [`t2v/describe.py`](t2v/describe.py) `describe` | the CLIP condition: name + 5 descriptions per class ([`data/descriptions_imagenet.json`](data/descriptions_imagenet.json)) |
-| 3 Analogise | [`t2v/neighbors.py`](t2v/neighbors.py) `ask` | weighted look-alike classes whose learned rows are blended into a new class's row ([`data/neighbors_imagenet.json`](data/neighbors_imagenet.json)) |
+| 2 Ground | [`t2v/ground.py`](t2v/ground.py) `ground` | vocabulary names, so known classes get their learned rows |
+| 3 Describe | [`t2v/describe.py`](t2v/describe.py) `describe` | the CLIP condition: name + 5 descriptions per class ([`data/descriptions_imagenet.json`](data/descriptions_imagenet.json)) |
+| 4 Analogise | [`t2v/neighbors.py`](t2v/neighbors.py) `ask` | weighted look-alike classes whose learned rows are blended into a new class's row ([`data/neighbors_imagenet.json`](data/neighbors_imagenet.json)) |
 
-**See it live.** [`t2v/agent.py`](t2v/agent.py) runs the three steps on any request. A real run (15 October 2026):
+**See it live.** [`t2v/agent.py`](t2v/agent.py) runs the four steps on any request. Real runs (15–16 October 2026):
 
 ```text
-$ python -m t2v.agent "أبي نموذج يميز بين القطط والكلاب والكابيبارا"
+$ python -m t2v.agent "I want a model for orcas, sneakers, kitties, a school bus and dogs"
 agent: DeepSeek-V4-Flash on AMD TokenFactory
 
-1 understand  'أبي نموذج يميز بين القطط والكلاب والكابيبارا'
-  -> ['cat', 'dog', 'capybara']   (Distinguish between cats, dogs, and capybaras in photos.)
+1 understand  -> ['orcas', 'sneakers', 'kitties', 'school bus', 'dogs']
+2 ground       orcas -> killer whale, sneakers -> running shoe, kitties -> tabby
+3 describe
+  running shoe: Curved sole with thick cushioning, mesh upper, laces, often bright colors.
+  dogs: Four-legged animal with a snout and tail
+  …
+4 analogise
+  killer whale looks like: submarine 50%, warplane 30%, speedboat 20%
+  …
+3 TokenFactory calls
 
-2 describe
-  cat: Small to medium size, pointed ears, whiskers, and a long tail.
-  capybara: Large rodent with a blocky, rectangular head and blunt snout.
+$ python -m t2v.agent "أبي نموذج يميز بين القطط والكلاب والكابيبارا"
+1 understand  -> ['cat', 'dog', 'capybara']
   …
-3 analogise
   capybara looks like: guinea pig 40%, beaver 30%, marmot 30%
-  …
-2 TokenFactory calls
 ```
 
 Without a key, the app and the notebook still run on the outputs TokenFactory already produced (stored in
@@ -273,12 +287,14 @@ t2v/                    the package
   generate.py             text -> weights -> PyTorch / ONNX model
   evaluate.py diagnose.py accuracy against baselines; eight inference-only probes
   tokenfactory.py         the AMD TokenFactory client used by every agent call
-  llm.py describe.py neighbors.py   the agent: understand, describe, analogise
+  llm.py ground.py describe.py neighbors.py   the agent: understand, ground, describe, analogise
+  contrast.py             a tried agent step that did not help (kept for the record)
   agent.py                the agent live in one command (python -m t2v.agent "...")
 app.py  Dockerfile      Gradio demo; CPU or ROCm container
 data/                   ImageNet-1k names and split; TokenFactory descriptions and analogies
 notebooks/              Colab demo notebook (T2V_demo.ipynb) and one-cell Colab runs
-results/                logs and diagnostics of the T2V-1K run
+experiments/            A/B tests of agent steps (grounding, contrastive descriptions)
+results/                logs and diagnostics of the T2V-1K run; agent A/B logs
 docs/                   experiment log, architecture diagram, demo GIF
 checkpoints/            CIFAR-100 generator (the ImageNet-1k one comes from the release)
 tests/                  unit tests (pytest, CPU, no downloads)

@@ -223,8 +223,25 @@ accuracy; the evaluation below decides.
   close to one (53.7%). Close ones are often fine-grained relatives (dog breeds, for example), which are
   hard to tell apart at 32×32.
 
+## Agent steps measured after T2V-1K (16 October 2026)
+
+Two candidate agent steps were A/B-tested on real ImageNet validation photos (50 per class), same tasks and
+same generator for both arms, with the live TokenFactory agent (`experiments/`, logs in `results/agent_ab/`).
+
+| Step | Tasks | Without | With | Difference | Shipped |
+|---|---|---|---|---|---|
+| **Grounding**: map the user's words onto the vocabulary (requests written with WordNet synonyms, e.g. "Rana catesbeiana", "puma") | 20 × 10 classes | 56.4% | 57.3% | +1.0 ± 0.7 (12 wins, 6 losses) | yes |
+| **Contrastive descriptions** for the most similar new-class pairs in a request | 30 × 10 never-seen classes | 58.3% | 58.4% | +0.03 ± 0.07 (11 wins, 11 losses) | no |
+
+Grounding mapped 121 of the 200 task names to exactly the right class; most misses were near-synonym breeds or
+species (Russian wolfhound → Irish wolfhound instead of borzoi), and a wrong map can cost accuracy, which keeps
+the average gain small on these deliberately rare names. Everyday names map cleanly ("orcas" → killer whale,
+"sneakers" → running shoe, "kitties" → tabby; "dogs" correctly stays a new class). The contrastive lines are
+averaged with five generic descriptions and the prompt templates, so they barely move the condition.
+
 ## What did not work, in one place
 
+- Contrastive agent descriptions for look-alike classes in a request (+0.03 ± 0.07 points; not shipped).
 - ε-prediction (diverged; replaced by x₀-prediction).
 - Per-tensor weight normalisation for ResNet-20 (chance accuracy; replaced by element normalisation).
 - Uniform token sampling (identical classifier rows; replaced by head weighting).

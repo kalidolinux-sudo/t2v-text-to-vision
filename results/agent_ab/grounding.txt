@@ -1,0 +1,31 @@
+classes with a synonym: 399 seen among them: 345
+synonym names: 160
+describe: request failed (HTTPSConnectionPool(host='developer.amd.com.cn', port=443): Read timed out. (read timeout=120)); falling back to class names for ['prayer mat', 'puma', 'reaper', 'ricksha', 'ring-necked snake', 'ring-tailed lemur', 'ringtail', 'river horse', 'rock snake', 'rocker', 'roundworm', 'salt shaker', 'sawmill', 'seatbelt', 'slipstick', 'snowplough', 'speaker unit', 'spike', 'spiny anteater', 'station wagon']
+described 140
+grounded 112 of 160
+grounding: 121/200 task-classes mapped to the right class; wrong maps: [('Rana catesbeiana', 'amphibian', 'bullfrog'), ('Russian wolfhound', 'Irish wolfhound', 'borzoi'), ('Vulpes macrotis', 'red fox', 'kit fox'), ('blower', 'hand blower', 'electric fan'), ('catamount', 'cougar', 'lynx'), ('gazelle hound', 'whippet', 'Saluki'), ('grass snake', 'garter snake', 'green snake'), ('groin', 'hip', 'breakwater'), ('horned rattlesnake', 'horned viper', 'sidewinder'), ('leathery turtle', 'loggerhead', 'leatherback turtle')]
+base: synonyms the gate calls known: 1 of 160 | analogies asked: 159
+task  0  base 0.606  grounded 0.554  diff -0.052
+task  1  base 0.590  grounded 0.594  diff +0.004
+task  2  base 0.632  grounded 0.638  diff +0.006
+task  3  base 0.554  grounded 0.556  diff +0.002
+task  4  base 0.574  grounded 0.596  diff +0.022
+task  5  base 0.644  grounded 0.684  diff +0.040
+task  6  base 0.478  grounded 0.478  diff +0.000
+task  7  base 0.596  grounded 0.626  diff +0.030
+task  8  base 0.554  grounded 0.520  diff -0.034
+task  9  base 0.624  grounded 0.690  diff +0.066
+task 10  base 0.466  grounded 0.448  diff -0.018
+task 11  base 0.566  grounded 0.612  diff +0.046
+task 12  base 0.628  grounded 0.618  diff -0.010
+task 13  base 0.640  grounded 0.680  diff +0.040
+task 14  base 0.584  grounded 0.556  diff -0.028
+task 15  base 0.422  grounded 0.478  diff +0.056
+task 16  base 0.522  grounded 0.516  diff -0.006
+task 17  base 0.538  grounded 0.542  diff +0.004
+task 18  base 0.522  grounded 0.522  diff +0.000
+task 19  base 0.530  grounded 0.560  diff +0.030
+
+tasks=20  base 0.5635  grounded 0.5734  diff +0.0099 ± 0.0069 (s.e.)  wins 12 losses 6
+TokenFactory calls 69, 1216 s
+

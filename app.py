@@ -14,6 +14,7 @@ from PIL import Image
 
 from t2v.generate import build_model, export, generate_flat, load_generator
 from t2v.llm import parse_classes
+from t2v.ground import ground
 from t2v.zoo import pick_device
 
 
@@ -75,7 +76,14 @@ def main():
 
     def understand(prompt):
         classes, info = parse_classes(prompt, tok.K)
-        return ", ".join(classes), f"parsed by: {info['source']}" + (f" — {info['task']}" if info.get("task") else "")
+        note = f"parsed by: {info['source']}" + (f" — {info['task']}" if info.get("task") else "")
+        if os.environ.get("TOKENFACTORY_API_KEY"):  # agent step: ground the user's words in the vocabulary
+            mapping = ground(classes, ck["names"], device=dev)
+            moved = [(c, mapping[c]) for c in classes if mapping.get(c) and mapping[c] != c]
+            classes = list(dict.fromkeys(mapping.get(c) or c for c in classes))
+            if moved:
+                note += " · grounded: " + ", ".join(f"{a} → {b}" for a, b in moved)
+        return ", ".join(classes), note
 
     def create(class_text, steps):
         classes = [c.strip() for c in class_text.split(",") if c.strip()][:tok.K]
