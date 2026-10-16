@@ -78,8 +78,10 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
     the class names as matched to the vocabulary ("names", case-insensitive)."""
     class_names = [gen.names[c] if not isinstance(c, str) and getattr(gen, "names", None) else c
                    for c in class_names]
-    canon = {n.lower(): n for n in getattr(gen, "names", None) or []}  # "african elephant" -> "African elephant"
-    class_names = [canon.get(c.strip().lower(), c) for c in class_names]
+    vocab = getattr(gen, "names", None) or []
+    canon = {n.lower(): n for n in vocab}  # "african elephant" -> "African elephant"
+    exact = set(vocab)  # an exact name wins: "Cardigan" (the corgi) and "cardigan" (the sweater) are both classes
+    class_names = [c if c in exact else canon.get(c.strip().lower(), c) for c in class_names]
     if info is not None:
         info["names"] = class_names
     if gate == "auto":

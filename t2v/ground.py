@@ -45,7 +45,8 @@ def ground(names, vocab, k=8, device="cpu", timeout=120, batch=20):
     """{name: vocabulary name or None} for every name not already in the vocabulary (case-insensitive).
     Names already in the vocabulary map to themselves; without a key nothing else is mapped."""
     canon = {v.lower(): v for v in vocab}
-    out = {n: canon[n.lower()] for n in names if n.lower() in canon}
+    exact = set(vocab)  # an exact name wins over a case-insensitive match ("Cardigan" vs "cardigan")
+    out = {n: n if n in exact else canon[n.lower()] for n in names if n in exact or n.lower() in canon}
     todo = [n for n in names if n.lower() not in canon]
     if not todo or tokenfactory.config() is None:
         return {**out, **{n: None for n in todo}}

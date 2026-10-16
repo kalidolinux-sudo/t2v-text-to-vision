@@ -92,3 +92,10 @@ def test_ground_offline_keeps_names(monkeypatch):
     monkeypatch.delenv("TOKENFACTORY_API_KEY", raising=False)
     vocab = ["killer whale", "tabby", "running shoe"]
     assert ground(["Tabby", "orca"], vocab) == {"Tabby": "tabby", "orca": None}  # no key: no call, exact names only
+
+
+def test_ground_exact_name_wins_over_case(monkeypatch):
+    from t2v.ground import ground
+    monkeypatch.delenv("TOKENFACTORY_API_KEY", raising=False)
+    vocab = ["Cardigan", "cardigan", "tabby"]  # ImageNet has both: the corgi and the sweater
+    assert ground(["Cardigan", "cardigan", "TABBY"], vocab) == {"Cardigan": "Cardigan", "cardigan": "cardigan", "TABBY": "tabby"}
