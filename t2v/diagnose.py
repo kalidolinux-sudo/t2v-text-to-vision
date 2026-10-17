@@ -46,7 +46,7 @@ def main():
     arch = ck["arch"]
     with open(f"{a.zoo}/meta.json") as f:
         meta = json.load(f)
-    data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
+    data = dataset_from_meta(meta, a.data, dev)
     E = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False), descriptions=ck.get("descriptions"))
     seen = meta["seen"]
     net = target.build(arch).to(dev)

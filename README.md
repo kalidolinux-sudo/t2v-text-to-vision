@@ -263,7 +263,7 @@ python -m t2v.describe --names_from zoo/meta.json --out data/descriptions.json
 python -m t2v.neighbors --zoo zoo --descriptions data/descriptions.json --out data/neighbors.json
 
 # 3. generator (--fp16 on T4-class GPUs; --bf16 intended for MI300X)
-python -m t2v.train_gen --zoo zoo --out ckpt/generator.pt --denoiser mlp --mlp_hidden 1024 --joint_layers 4 \
+python -m t2v.train_gen --zoo zoo --out ckpt/generator.pt --mlp_hidden 1024 --joint_layers 4 \
     --norm element --head_weight 10 --semantic_prior --descriptions data/descriptions.json \
     --neighbors data/neighbors.json --prompt_ensemble --emb_noise 0.02 --ema 0.999 --cosine --steps 6000
 

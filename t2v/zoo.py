@@ -108,24 +108,6 @@ def train_distill(model, proj, x_u8, y, targets, epochs, lr, bs, wd=5e-4, amp=Fa
 
 
 @torch.no_grad()
-def clip_targets(x_u8, device, bs=1024):
-    """CLIP ViT-B/32 image embeddings (unit norm, fp16) of uint8 32x32 images, upsampled to 224."""
-    from .features import clip_pixels
-    from .text_embed import _load
-    model, _ = _load(device)
-    out = []
-    for i in range(0, len(x_u8), bs):
-        with torch.autocast("cuda", dtype=torch.float16, enabled=device.startswith("cuda")):
-            f = model.get_image_features(pixel_values=clip_pixels(x_u8[i:i + bs].to(device)))
-        if not torch.is_tensor(f):
-            f = f.pooler_output if getattr(f, "pooler_output", None) is not None else f[0]
-        out.append(F.normalize(f.float(), dim=-1).half())
-        if (i // bs) % 200 == 0:
-            print(f"  CLIP targets {i + len(f)}/{len(x_u8)}", flush=True)
-    return torch.cat(out)
-
-
-@torch.no_grad()
 def zero_shot_tasks(model, proj, data, classes, text_emb, n_tasks=100, k=10, seed=0):
     """Mean 10-way accuracy on test photos when the classifier is CLIP's text embeddings of the class names
     applied to proj(features): how well the distilled body transfers to classes it never trained on."""
@@ -167,7 +149,7 @@ def trainable(name, finetune, arch_blocks):
 def cmd_generic(a):
     dev = pick_device(a.device)
     torch.manual_seed(a.seed)
-    data = load_dataset(a.dataset, a.data, dev, features=target.uses_features(a.arch), per_class=a.per_class)
+    data = load_dataset(a.dataset, a.data, dev, per_class=a.per_class)
     n_cls = len(data.names)
     if a.split_file:  # a fixed split shipped with the code (TokenFactory's answers were computed for it)
         with open(a.split_file) as f:
@@ -192,8 +174,9 @@ def cmd_generic(a):
         if os.path.exists(cache):
             targets = torch.load(cache, map_location=dev)
         else:
-            targets = clip_targets(x, dev)
-            torch.save(targets.cpu(), cache)
+            from .features import image_features
+            targets = image_features(x, dev, bs=1024).half()
+            torch.save(targets, cache)
         print(f"CLIP targets for {len(targets)} training images ({time.time() - t0:.0f}s)", flush=True)
         feat = model.fc.in_features
         proj = nn.Linear(feat, targets.shape[1]).to(dev)
@@ -223,20 +206,16 @@ def cmd_generic(a):
           f"({len(hold_rand)} random + {len(hold_hard)} hard held out), {time.time() - t0:.0f}s")
 
 
-def personalise(generic_state, arch, classes, dev, text_emb=None):
-    """10-way model initialised from the generic one; head rows copied for the task's classes
-    (for `clip_zs`: initialised from CLIP's zero-shot head instead)."""
+def personalise(generic_state, arch, classes, dev):
+    """10-way model initialised from the generic one, with the head rows of the task's classes copied over."""
     m = target.build(arch).to(dev)
     body = {k: v for k, v in generic_state.items() if not k.startswith("fc.")}
     m.load_state_dict(body, strict=False)
     with torch.no_grad():
         m.fc.weight.zero_()
         m.fc.bias.zero_()
-        if target.has_prior(arch):
-            m.fc.weight[:len(classes)] = target.ZS_SCALE * text_emb[classes]
-        else:
-            m.fc.weight[:len(classes)] = generic_state["fc.weight"][classes]
-            m.fc.bias[:len(classes)] = generic_state["fc.bias"][classes]
+        m.fc.weight[:len(classes)] = generic_state["fc.weight"][classes]
+        m.fc.bias[:len(classes)] = generic_state["fc.bias"][classes]
     return m
 
 
@@ -275,11 +254,7 @@ def cmd_pmodels(a):
     torch.backends.cudnn.benchmark = True
     g = torch.load(os.path.join(a.out, "generic.pt"), map_location=dev)
     arch, K = g["arch"], meta["max_classes"]
-    data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
-    text_emb = None
-    if target.has_prior(arch):
-        from .text_embed import embed_names
-        text_emb = embed_names(meta["names"], dev, ensemble=True)
+    data = dataset_from_meta(meta, a.data, dev)
     n_blocks = len(getattr(target.build(arch), "layers", []))
     tasks = make_tasks(a, meta, K)
 
@@ -297,7 +272,7 @@ def cmd_pmodels(a):
         runs = []
         for s in range(a.soup):
             torch.manual_seed(a.seed * 1_000_003 + SPLITS.index(a.split) * 100_003 + i + 7919 * s)
-            m = personalise(g["state"], arch, classes, dev, text_emb)
+            m = personalise(g["state"], arch, classes, dev)
             for name, p in m.named_parameters():
                 p.requires_grad_(trainable(name, a.finetune, n_blocks))
             train(m, x, y, a.epochs, a.lr, a.bs, k=len(classes), wd=a.wd, amp=a.amp)
@@ -309,8 +284,6 @@ def cmd_pmodels(a):
         m = target.load_flat(target.build(arch).to(dev), flat.to(dev))
         xt, yt = data.subset(classes, train=False)
         done["acc"].append(accuracy(m, xt, yt, k=len(classes)))
-        if text_emb is not None:  # store the correction to the zero-shot head, not the raw head
-            flat = target.add_head_prior(arch, flat, text_emb[classes].cpu(), sign=-1.0)
         done["flat"].append(flat.half() if a.fp16 else flat)
         done["classes"].append(classes + [-1] * (K - len(classes)))
         done["index"].append(i)

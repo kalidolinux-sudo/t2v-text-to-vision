@@ -48,7 +48,7 @@ def main():
     with open(os.path.join(a.zoo, "meta.json")) as f:
         meta = json.load(f)
     seen = set(meta["seen"])
-    data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
+    data = dataset_from_meta(meta, a.data, dev)
     generic = target.build(arch, len(meta["names"])).to(dev)
     generic.load_state_dict(torch.load(os.path.join(a.zoo, "generic.pt"), map_location=dev)["state"])
     if gen.seen_emb is None:  # checkpoints saved before train_classes was stored
@@ -57,7 +57,6 @@ def main():
     class_emb = embed_names(ck["names"], dev, ensemble=ck.get("prompt_ensemble", False),
                             descriptions=ck.get("descriptions"))
     net = target.build(arch).to(dev)
-    zs_emb = embed_names(ck["names"], dev, ensemble=True)  # CLIP zero-shot uses the prompt ensemble
 
     report = {}
     for split in a.splits.split(","):
@@ -72,8 +71,7 @@ def main():
             xt, yt = data.subset(cls, train=False)
             t0 = time.time()
             flats = generate_flat(gen, tok, cls, n=a.samples * a.average, steps=a.steps, emb=class_emb[cls],
-                                  prior_emb=zs_emb[cls], arch=arch, amp=a.fp16, body_noise=a.body_noise,
-                                  gate=parse_gate(a.gate), prior=a.prior)
+                                  amp=a.fp16, body_noise=a.body_noise, gate=parse_gate(a.gate), prior=a.prior)
             if a.average > 1:  # the samples share the zoo's layout, so their mean is a sharper estimate
                 flats = flats.view(a.samples, a.average, -1).mean(1)
             if dev.startswith("cuda"):
@@ -85,11 +83,7 @@ def main():
                 with torch.no_grad():
                     logits = generic(prep(xt))[:, cls]
                 sel = (logits.argmax(1) == yt).float().mean().item()
-            zs = None
-            if target.uses_features(arch):
-                zs = ((xt @ zs_emb[cls].T).argmax(1) == yt).float().mean().item()
-            rows.append({"classes": cls, "generated": accs, "oracle": oracle[i].item(), "selection": sel,
-                         "clip_zero_shot": zs})
+            rows.append({"classes": cls, "generated": accs, "oracle": oracle[i].item(), "selection": sel})
         mean = lambda v: sum(v) / len(v) if v else float("nan")
         summary = {
             "tasks": len(rows),
@@ -97,7 +91,6 @@ def main():
             "generated_best": mean([max(r["generated"]) for r in rows]),
             "oracle": mean([r["oracle"] for r in rows]),
             "selection": mean([r["selection"] for r in rows if r["selection"] is not None]),
-            "clip_zero_shot": mean([r["clip_zero_shot"] for r in rows if r["clip_zero_shot"] is not None]),
             "chance": mean([1 / len(r["classes"]) for r in rows]),
             "seconds_per_model": gen_time / max(1, len(rows) * a.samples),
         }

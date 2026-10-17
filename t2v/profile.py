@@ -23,9 +23,8 @@ def build_fresh(a, dev):
     spec = target.param_spec(target.build(a.arch))
     flat = torch.cat([target.flatten(target.build(a.arch))[None] for _ in range(2)])
     tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec), target.MAX_CLASSES).to(dev)
-    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, 512, a.d_model, a.backbone,
-                       denoiser=a.denoiser, mlp_hidden=a.mlp_hidden, pred="x0", clip=5.0,
-                       joint_layers=a.joint_layers, valid=tok.valid).to(dev)
+    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, 512, a.d_model,
+                       mlp_hidden=a.mlp_hidden, clip=5.0, joint_layers=a.joint_layers, valid=tok.valid).to(dev)
     return gen.eval(), tok
 
 
@@ -35,8 +34,6 @@ def main():
     p.add_argument("--arch", default="resnet20")
     p.add_argument("--token_size", type=int, default=1024)
     p.add_argument("--d_model", type=int, default=512)
-    p.add_argument("--backbone", default="lstm")
-    p.add_argument("--denoiser", default="mlp")
     p.add_argument("--mlp_hidden", type=int, default=1024)
     p.add_argument("--joint_layers", type=int, default=4)
     p.add_argument("--steps", type=int, default=20)
@@ -48,7 +45,7 @@ def main():
     print(f"tokens per model: {tok.num_tokens} x {tok.token_size}  ({tok.num_params:,} generated params)\n")
 
     parts = {"class encoder": gen.cond, "position + prototype layers": [gen.pos_proj, gen.xattn, gen.xnorm, gen.proto_out],
-             "recurrent backbone": gen.backbone, "per-token denoiser": gen.denoiser}
+             "LSTM backbone": gen.backbone, "per-token denoiser": gen.denoiser}
     if gen.config.get("joint_layers", 0):
         parts["joint transformer"] = [gen.joint_in, gen.joint_time, gen.joint, gen.joint_out]
     total = count(gen)

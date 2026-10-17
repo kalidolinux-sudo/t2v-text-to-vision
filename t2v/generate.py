@@ -17,7 +17,7 @@ from .zoo import pick_device
 def load_generator(path, device):
     ck = torch.load(path, map_location=device)
     tok = ParamTokenizer.from_state(ck["tokenizer"]).to(device)
-    cfg = {"pred": "eps", "clip": 3.0, **ck["config"]}  # defaults for checkpoints saved before these options
+    cfg = {"clip": 3.0, **ck["config"]}  # default for checkpoints saved before this option
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, valid=tok.valid, **cfg).to(device)
     gen.load_state_dict(ck["generator"])
     gen.prompt_ensemble = ck.get("prompt_ensemble", False)
@@ -66,7 +66,7 @@ def neighbor_rows(gen, names, emb, mode, need):
 
 
 @torch.no_grad()
-def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=None, arch=None, descriptions=None,
+def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, descriptions=None,
                   amp=False, body_noise=1.0, gate=None, prior="auto", info=None):
     """Weights for `n` models classifying `class_names` (names, or class ids of the training set), in order.
     Returns (n, P) flat vectors. For a generator trained with descriptions, each class is described visually
@@ -129,11 +129,6 @@ def generate_flat(gen, tok, class_names, n=1, steps=100, emb=None, prior_emb=Non
                 use = ~known & ~nb_rows.isnan().any(1)
                 rows = torch.where(use[:, None], (1 - beta) * rows + beta * nb_rows.nan_to_num(), rows)
         flat = target.add_head_rows(gen.arch, flat, rows[None].expand(n, -1, -1))
-    arch = arch or getattr(gen, "arch", None)
-    if arch and target.has_prior(arch):
-        if prior_emb is None:
-            prior_emb = embed_names(class_names, dev, ensemble=True)
-        flat = target.add_head_prior(arch, flat, prior_emb)
     return flat
 
 
@@ -172,35 +167,29 @@ def load_image_dir(path, max_per_class=16):
 class Generated(torch.nn.Module):
     """Generated network + input normalisation + slicing to the requested classes (for export)."""
 
-    def __init__(self, net, k, features=False):
+    def __init__(self, net, k):
         super().__init__()
         from .data import MEAN, STD
-        self.net, self.k, self.features = net, k, features
+        self.net, self.k = net, k
         self.register_buffer("mean", MEAN.clone())
         self.register_buffer("std", STD.clone())
 
     def forward(self, x):
-        # images: float in [0, 1], (B, 3, 32, 32); clip_head: CLIP ViT-B/32 image features, (B, 512)
-        if not self.features:
-            x = (x - self.mean) / self.std
-        return self.net(x)[:, :self.k]
+        # images: float in [0, 1], (B, 3, 32, 32)
+        return self.net((x - self.mean) / self.std)[:, :self.k]
 
     def predict_image(self, img_uint8):
         """img_uint8: (H, W, 3) uint8 array of any size -> class probabilities."""
         x = torch.from_numpy(img_uint8).permute(2, 0, 1)[None]
         with torch.no_grad():
-            if self.features:
-                from .features import image_features
-                inp = image_features(x)
-            else:
-                inp = torch.nn.functional.interpolate(x.float() / 255, size=(32, 32), mode="bicubic",
-                                                      align_corners=False).clamp(0, 1)
+            inp = torch.nn.functional.interpolate(x.float() / 255, size=(32, 32), mode="bicubic",
+                                                  align_corners=False).clamp(0, 1)
             return self(inp).softmax(-1)[0]
 
 
 def build_model(arch, flat, k):
     net = target.load_flat(target.build(arch), flat.cpu()).eval()
-    return Generated(net, k, features=target.uses_features(arch)).eval()
+    return Generated(net, k).eval()
 
 
 def export(model, classes, arch, out_dir):
@@ -211,9 +200,8 @@ def export(model, classes, arch, out_dir):
         json.dump(classes, f, ensure_ascii=False)
     onnx_path = os.path.join(out_dir, "model.onnx")
     try:
-        dummy, name = (torch.rand(1, 512), "clip_features") if model.features else (torch.rand(1, 3, 32, 32), "image")
-        torch.onnx.export(model, dummy, onnx_path, input_names=[name],
-                          output_names=["logits"], dynamic_axes={name: {0: "batch"}, "logits": {0: "batch"}},
+        torch.onnx.export(model, torch.rand(1, 3, 32, 32), onnx_path, input_names=["image"],
+                          output_names=["logits"], dynamic_axes={"image": {0: "batch"}, "logits": {0: "batch"}},
                           dynamo=False)
     except Exception as e:  # ONNX is a convenience; weights.pt is the primary artefact
         print(f"ONNX export skipped: {e}")

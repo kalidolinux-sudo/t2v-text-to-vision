@@ -31,7 +31,7 @@ def test_head_rows_add_and_remove():
 
 def test_tokenizer_roundtrip_all_norms():
     spec, flat = zoo()
-    for norm in ("tensor", "element", "zscore"):
+    for norm in ("tensor", "element"):
         tok = ParamTokenizer(spec, 256, ParamTokenizer.compute_stats(flat, spec, norm), target.MAX_CLASSES)
         assert torch.allclose(tok.decode(tok.encode(flat)), flat, atol=1e-4), norm
         assert len(tok.head_pos) == target.MAX_CLASSES  # one token per classifier row
@@ -41,7 +41,7 @@ def test_generator_loss_and_sample_shapes():
     spec, flat = zoo()
     tok = ParamTokenizer(spec, 256, ParamTokenizer.compute_stats(flat, spec, "element"), target.MAX_CLASSES)
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, 256, clip_dim=16, d_model=32, heads=4,
-                       denoiser="mlp", mlp_hidden=64, joint_layers=1, clip=3.0, valid=tok.valid)
+                       mlp_hidden=64, joint_layers=1, clip=3.0, valid=tok.valid)
     K = target.MAX_CLASSES
     emb = torch.nn.functional.normalize(torch.randn(len(flat), K, 16), dim=-1)
     mask = torch.ones(len(flat), K, dtype=torch.bool)
@@ -105,7 +105,7 @@ def test_tina_joint_transformer():
     spec, flat = zoo()
     tok = ParamTokenizer(spec, 256, ParamTokenizer.compute_stats(flat, spec, "element"), target.MAX_CLASSES)
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, 256, clip_dim=16, d_model=32, heads=4,
-                       denoiser="mlp", mlp_hidden=64, joint_layers=2, clip=3.0, valid=tok.valid, joint_arch="tina")
+                       mlp_hidden=64, joint_layers=2, clip=3.0, valid=tok.valid, joint_arch="tina")
     K = target.MAX_CLASSES
     emb = torch.nn.functional.normalize(torch.randn(len(flat), K, 16), dim=-1)
     mask = torch.ones(len(flat), K, dtype=torch.bool)
@@ -124,7 +124,7 @@ def test_decoder_checkpoints_still_load():
     spec, flat = zoo()
     tok = ParamTokenizer(spec, 256, ParamTokenizer.compute_stats(flat, spec, "element"), target.MAX_CLASSES)
     old = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, 256, clip_dim=16, d_model=32, heads=4,
-                       denoiser="mlp", mlp_hidden=64, joint_layers=1, clip=3.0, valid=tok.valid)
+                       mlp_hidden=64, joint_layers=1, clip=3.0, valid=tok.valid)
     cfg = {k: v for k, v in old.config.items() if k != "joint_arch"}  # as saved by T2V-1K
     new = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, valid=tok.valid, **cfg)
     new.load_state_dict(old.state_dict(), strict=True)

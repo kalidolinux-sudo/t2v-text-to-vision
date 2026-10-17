@@ -53,16 +53,12 @@ def main():
     p.add_argument("--device", default="auto")
     p.add_argument("--token_size", type=int, default=1024)
     p.add_argument("--d_model", type=int, default=512)
-    p.add_argument("--backbone", default="lstm", choices=["lstm", "gru", "transformer", "mamba"])
     p.add_argument("--backbone_layers", type=int, default=2)
     p.add_argument("--cond_layers", type=int, default=2)
-    p.add_argument("--channels", default="64,128,256", help="conv denoiser widths")
-    p.add_argument("--denoiser", default="conv", choices=["conv", "mlp"])
     p.add_argument("--mlp_hidden", type=int, default=512)
     p.add_argument("--mlp_depth", type=int, default=3)
-    p.add_argument("--norm", default="tensor", choices=["tensor", "element", "zscore"],
-                   help="body weight normalisation (zscore recommended for BatchNorm nets like ResNet)")
-    p.add_argument("--pred", default="x0", choices=["x0", "eps"], help="denoiser target (x0 = Tina/G.pt signal prediction)")
+    p.add_argument("--norm", default="element", choices=["tensor", "element"],
+                   help="body weight normalisation: element = deviation from the zoo's mean model (T2V-1K)")
     p.add_argument("--steps", type=int, default=20000)
     p.add_argument("--bs", type=int, default=32)
     p.add_argument("--tokens_per_step", type=int, default=8192, help="tokens denoised per step (memory knob)")
@@ -87,7 +83,6 @@ def main():
                         "tokens] (Tina); decoder = T2V-1K's cross-attention decoder")
     p.add_argument("--head_weight", type=float, default=1.0,
                    help="loss weight of classifier-row tokens (they are also always included in each step)")
-    p.add_argument("--min_snr", type=float, default=0.0, help="Min-SNR-gamma loss weighting, e.g. 5; 0 = off")
     p.add_argument("--log_every", type=int, default=100)
     p.add_argument("--save_every", type=int, default=1000,
                    help="checkpoint period; also: kill -USR1 <pid> saves now, Ctrl-C / kill saves and stops")
@@ -139,9 +134,8 @@ def main():
     tok = ParamTokenizer(spec, a.token_size, ParamTokenizer.compute_stats(flat, spec, a.norm), meta["max_classes"]).to(dev)
     clip = max(tok.encode(flat[i:i + 256].to(dev)).abs().max().item() for i in range(0, len(flat), 256))
     gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, a.token_size, class_emb.shape[1], a.d_model,
-                       a.backbone, a.backbone_layers, a.cond_layers,
-                       channels=[int(c) for c in a.channels.split(",")], denoiser=a.denoiser,
-                       mlp_hidden=a.mlp_hidden, mlp_depth=a.mlp_depth, pred=a.pred, clip=round(clip, 3),
+                       a.backbone_layers, a.cond_layers, mlp_hidden=a.mlp_hidden, mlp_depth=a.mlp_depth,
+                       clip=round(clip, 3),
                        joint_layers=a.joint_layers, valid=tok.valid, joint_arch=a.joint_arch).to(dev)
     n_gen = sum(p.numel() for p in gen.parameters())
     print(f"tokens per model: {tok.num_tokens} x {a.token_size}; generator: {n_gen / 1e6:.1f}M params")
@@ -192,7 +186,7 @@ def main():
         row_valid = (tok.slots[None] < 0) | (tok.slots[None] < k[:, None])
         with torch.autocast(device_type="cuda" if dev.startswith("cuda") else "cpu", dtype=amp_dtype,
                             enabled=a.bf16 or use_fp16):
-            loss = gen.loss(x0, tok.valid, emb, mask, row_valid, a.tokens_per_step, a.min_snr, a.head_weight)
+            loss = gen.loss(x0, tok.valid, emb, mask, row_valid, a.tokens_per_step, a.head_weight)
         opt.zero_grad(set_to_none=True)
         scaler.scale(loss).backward()
         scaler.unscale_(opt)

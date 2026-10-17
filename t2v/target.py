@@ -56,20 +56,7 @@ class ResNet(nn.Module):
         return self.fc(x.mean((2, 3)))
 
 
-class ClipHead(nn.Module):
-    """Classifier head over frozen CLIP ViT-B/32 image features (Tina's ViT setting)."""
-
-    def __init__(self, num_classes=MAX_CLASSES, dim=512):
-        super().__init__()
-        self.fc = nn.Linear(dim, num_classes)
-
-    def forward(self, feats):
-        return self.fc(feats)
-
-
 ARCHS = {
-    "clip_head": lambda k: ClipHead(k),                                   # ~5.1K params on frozen CLIP
-    "clip_zs": lambda k: ClipHead(k),                                     # same, generated as a residual on CLIP zero-shot
     "tina_cnn": lambda k: TinaCNN(k),                                     # ~5.4K params
     "resnet20": lambda k: ResNet((16, 32, 64), (3, 3, 3), k),             # ~0.27M params
     "resnet20w2": lambda k: ResNet((32, 64, 128), (3, 3, 3), k),          # ~1.09M params, twice as wide
@@ -85,37 +72,6 @@ def penultimate(model, x):
         x = F.max_pool2d(F.relu(model.conv1(x)), 2)
         return F.max_pool2d(F.relu(model.conv2(x)), 2).mean((2, 3))
     return x
-
-
-def uses_features(arch):
-    return arch in ("clip_head", "clip_zs")
-
-
-ZS_SCALE = 50.0  # zero-shot head = ZS_SCALE * text embedding (logits = scaled cosine similarity)
-
-
-def has_prior(arch):
-    return arch == "clip_zs"
-
-
-def add_head_prior(arch, flat, text_emb, sign=1.0):
-    """For `clip_zs`, the generator works on W - ZS_SCALE * T: a correction to CLIP's zero-shot head.
-    Adds (sign=+1) or removes (sign=-1) the zero-shot rows for the k classes in `text_emb` (k, 512).
-    An unseen class whose correction comes out near zero falls back to plain CLIP zero-shot."""
-    if not has_prior(arch):
-        return flat
-    spec = param_spec(build(arch))
-    o, offs = 0, {}
-    for name, shape in spec:
-        offs[name] = (o, shape)
-        o += int(torch.Size(shape).numel())
-    w0, (K, feat) = offs[HEAD[0]]
-    k = text_emb.shape[0]
-    flat = flat.clone()
-    rows = flat[..., w0:w0 + K * feat].view(*flat.shape[:-1], K, feat)
-    rows[..., :k, :] += sign * ZS_SCALE * text_emb.to(flat.device, flat.dtype)
-    flat[..., w0:w0 + K * feat] = rows.reshape(*flat.shape[:-1], K * feat)
-    return flat
 
 
 def _head_offsets(arch):
