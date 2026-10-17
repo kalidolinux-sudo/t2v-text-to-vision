@@ -83,8 +83,8 @@ def main():
     p.add_argument("--joint_layers", type=int, default=0,
                    help="hybrid mode: Tina/G.pt-style transformer layers over all noisy tokens (0 = pure RPG)")
     p.add_argument("--joint_arch", default="decoder", choices=["decoder", "tina"],
-                   help="joint transformer: tina = one GPT-2 transformer over [time, classes, parameter tokens] "
-                        "(Tina / G.pt); decoder = T2V-1K's cross-attention decoder")
+                   help="joint transformer: tina = one self-attention transformer over [time, classes, parameter "
+                        "tokens] (Tina); decoder = T2V-1K's cross-attention decoder")
     p.add_argument("--head_weight", type=float, default=1.0,
                    help="loss weight of classifier-row tokens (they are also always included in each step)")
     p.add_argument("--min_snr", type=float, default=0.0, help="Min-SNR-gamma loss weighting, e.g. 5; 0 = off")

@@ -114,7 +114,7 @@ def test_tina_joint_transformer():
     loss = gen.loss(tok.encode(flat), tok.valid, emb, mask, row_valid, head_weight=10.0)
     assert torch.isfinite(loss)
     loss.backward()
-    assert gen.joint_slot.grad is not None and gen.joint_blocks[0].qkv.weight.grad is not None
+    assert gen.joint_time[0].weight.grad is not None and gen.joint_in.weight.grad is not None
     with torch.no_grad():
         tokens = gen.sample(emb[:2], mask[:2], steps=3, body_noise=0.0)
     assert tokens.shape == (2, tok.num_tokens, 256) and torch.isfinite(tokens).all()

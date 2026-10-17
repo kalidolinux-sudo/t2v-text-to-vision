@@ -7,9 +7,9 @@
   so memory grows with the number of tokens processed per step, not with the model size.
 
 The joint transformer (joint_layers > 0) lets the noisy tokens of one network attend to each other at every
-denoising step. joint_arch="tina" follows Tina (Li et al., 2025) and G.pt: one GPT-2 transformer over the
-sequence [timestep token, class tokens in task order, parameter tokens]. joint_arch="decoder" is the
-original PyTorch TransformerDecoder (time added to the input, cross-attention to the classes; T2V-1K).
+denoising step. joint_arch="tina" follows Tina (Li et al., 2025): one transformer, self-attention only, over
+the sequence [timestep token, class tokens, parameter tokens]. joint_arch="decoder" is T2V-1K's decoder
+(time added to the input, cross-attention to the classes).
 """
 import math
 
@@ -148,23 +148,6 @@ class MLPDenoiser(nn.Module):
         return self.out(h)
 
 
-class GPTBlock(nn.Module):
-    """GPT-2 block (pre-LayerNorm self-attention + GELU MLP), the transformer of Tina and G.pt. Not causal:
-    every token of the network being denoised sees every other token."""
-
-    def __init__(self, d, heads):
-        super().__init__()
-        self.heads = heads
-        self.ln1, self.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
-        self.qkv, self.proj = nn.Linear(d, 3 * d), nn.Linear(d, d)
-        self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(approximate="tanh"), nn.Linear(4 * d, d))
-
-    def forward(self, x):
-        q, k, v = self.qkv(self.ln1(x)).unflatten(-1, (3, self.heads, -1)).permute(2, 0, 3, 1, 4)
-        x = x + self.proj(F.scaled_dot_product_attention(q, k, v).transpose(1, 2).flatten(-2))
-        return x + self.mlp(self.ln2(x))
-
-
 def cosine_alpha_bar(steps, s=0.008):
     t = torch.linspace(0, steps, steps + 1, dtype=torch.float64)
     f = torch.cos((t / steps + s) / (1 + s) * math.pi / 2) ** 2
@@ -208,10 +191,10 @@ class T2VGenerator(nn.Module):
             self.joint_in = nn.Linear(token_size, d_model)
             self.joint_time = nn.Sequential(nn.Linear(d_model, d_model), nn.SiLU(), nn.Linear(d_model, d_model))
             if joint_arch == "tina":
-                # class tokens carry their slot (task order), as Tina encodes the ordered class list
-                self.joint_slot = nn.Parameter(torch.zeros(int(slots.max()) + 1, d_model))
-                self.joint_blocks = nn.ModuleList([GPTBlock(d_model, heads) for _ in range(joint_layers)])
-                self.joint_ln = nn.LayerNorm(d_model)
+                layer = nn.TransformerEncoderLayer(d_model, heads, 4 * d_model, dropout=0.0, activation="gelu",
+                                                   batch_first=True, norm_first=True)
+                self.joint = nn.TransformerEncoder(layer, joint_layers, norm=nn.LayerNorm(d_model),
+                                                   enable_nested_tensor=False)
             elif joint_arch == "decoder":
                 layer = nn.TransformerDecoderLayer(d_model, heads, 4 * d_model, dropout=0.0, batch_first=True,
                                                    norm_first=True)
@@ -241,10 +224,8 @@ class T2VGenerator(nn.Module):
             h = self.joint_in(x_t * self.valid) + proto + t_emb[:, None]
             return proto + self.joint_out(self.joint(h, classes))
         K = classes.shape[1]
-        z = torch.cat([t_emb[:, None], classes + self.joint_slot[:K], self.joint_in(x_t * self.valid) + proto], 1)
-        for block in self.joint_blocks:
-            z = block(z)
-        return proto + self.joint_out(self.joint_ln(z[:, 1 + K:]))
+        z = torch.cat([t_emb[:, None], classes, self.joint_in(x_t * self.valid) + proto], 1)
+        return proto + self.joint_out(self.joint(z)[:, 1 + K:])
 
     def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None, min_snr=0.0, head_weight=1.0):
         """x0 (B,T,D) normalised tokens, valid (T,D), row_valid (B,T) -> denoising MSE.
