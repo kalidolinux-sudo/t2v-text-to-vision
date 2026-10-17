@@ -116,9 +116,12 @@ the ridge prior from class text to classifier rows was fitted on them, and the a
 cross-validation on TokenFactory's analogies for 100 validation classes. At run time every request goes through it,
 and so does every class name it has not described before.
 
-**Measured before shipping.** A fourth role was tried and dropped: contrastive descriptions for look-alike classes
-in the same request gave +0.03 ± 0.07 points (30 tasks), so the product does not use it
-([`experiments/`](experiments/), logs in [`results/agent_ab/`](results/agent_ab/)).
+**Measured before shipping.** Two more roles were tried and dropped. Contrastive descriptions for look-alike
+classes in the same request gave +0.03 ± 0.07 points (30 tasks; [`experiments/`](experiments/), logs in
+[`results/agent_ab/`](results/agent_ab/)). A 60-attribute visual questionnaire for all 1,000 classes, fed with the
+descriptions into a row map trained on photos, added nothing over the descriptions alone, and the photo-trained map
+itself gave +2.3 / +0.8 / −1.9 points on half new / all new / hard tasks
+([`notebooks/experiments/`](notebooks/experiments/), [log](results/upgrade_tests/rowmap_attributes.txt)).
 
 **Where it is in the code.** All agent calls go through one module, [`t2v/tokenfactory.py`](t2v/tokenfactory.py)
 (OpenAI-compatible chat completions; only `TOKENFACTORY_API_KEY` is needed).
@@ -288,13 +291,13 @@ t2v/                    the package
   evaluate.py diagnose.py accuracy against baselines; eight inference-only probes
   tokenfactory.py         the AMD TokenFactory client used by every agent call
   llm.py ground.py describe.py neighbors.py   the agent: understand, ground, describe, analogise
-  contrast.py             a tried agent step that did not help (kept for the record)
+  contrast.py attributes.py   tried agent steps that did not help (kept for the record)
   agent.py                the agent live in one command (python -m t2v.agent "...")
 app.py  Dockerfile      Gradio demo; CPU or ROCm container
 data/                   ImageNet-1k names and split; TokenFactory descriptions and analogies
-notebooks/              Colab demo notebook (T2V_demo.ipynb) and one-cell Colab runs
+notebooks/              Colab demo notebook (T2V_demo.ipynb), one-cell Colab runs, upgrade tests (experiments/)
 experiments/            A/B tests of agent steps (grounding, contrastive descriptions)
-results/                logs and diagnostics of the T2V-1K run; agent A/B logs
+results/                logs and diagnostics of the T2V-1K run; agent A/B and upgrade-test logs
 docs/                   experiment log, architecture diagram, demo GIF
 checkpoints/            CIFAR-100 generator (the ImageNet-1k one comes from the release)
 tests/                  unit tests (pytest, CPU, no downloads)

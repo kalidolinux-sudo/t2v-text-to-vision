@@ -1,0 +1,32 @@
+notebooks/experiments/T2V_rowmap_upgrade.ipynb on Google Colab (Tesla T4), 17 October 2026. Console output, condensed.
+
+TokenFactory attributes: 1000 classes x 60 attributes
+photos: 143520 for fitting, 44850 for cross-validation (images 300-349 of each class, never used by the zoo)
+
+=== cross-validation on seen classes treated as new (5 folds x 40 tasks) ===
+  ridge (shipped prior)                                0.5941
+  zoo rows (oracle-ish)                                0.7574
+  text | episodic mu1e-3 2k                            0.6445
+  text | episodic mu3e-3 2k                            0.6436
+  text + TokenFactory attributes | episodic mu1e-3 2k  0.6433
+  text + TokenFactory attributes | episodic mu3e-3 2k  0.6447
+  TokenFactory attributes only | episodic mu1e-3 2k    0.5261
+  TokenFactory attributes only | episodic mu3e-3 2k    0.5262
+  map without TokenFactory descriptions (episodic mu1e-3 2k): 0.6281
+  best map: text + TokenFactory attributes | episodic mu3e-3 2k; TokenFactory analogy blend on top, by beta:
+    0.0: 0.6447  0.1: 0.6455  0.2: 0.6454  0.3: 0.6447  0.4: 0.6441  0.5: 0.6430   -> beta 0.1
+
+T2V-1K + image-supervised row map | official test tasks, 100 per split, 10 classes, ImageNet validation photos
+                                                                     seen   half new    all new       hard
+shipped T2V-1K                                                      0.699      0.641      0.636      0.475
+best map (text + TokenFactory attributes)                           0.699      0.659      0.635      0.452
+map: names only (no TokenFactory)                                   0.698      0.638      0.616      0.470
+map: text                                                           0.698      0.653      0.630      0.473
+map: TokenFactory attributes only                                   0.697      0.554      0.523      0.340
+best map + TokenFactory analogies (beta 0.1)                        0.699      0.664      0.644      0.456
+  eval_seen        upgrade - shipped: -0.0004 ± 0.0003 (s.e.)  wins 1  losses 3
+  eval_unseen      upgrade - shipped: +0.0225 ± 0.0023 (s.e.)  wins 83  losses 11
+  eval_novel       upgrade - shipped: +0.0080 ± 0.0026 (s.e.)  wins 56  losses 43
+  eval_novel_hard  upgrade - shipped: -0.0185 ± 0.0036 (s.e.)  wins 31  losses 66
+
+(The shipped row, re-run here in fp32, matches the original fp16 run: 70.0 / 64.1 / 63.6 / 47.5.)

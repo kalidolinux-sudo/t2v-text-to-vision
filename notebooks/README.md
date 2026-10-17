@@ -13,6 +13,8 @@ need, so they work without cloning the repository, and none of them contains an 
 | [`t2v_colab_paired_stats.py`](t2v_colab_paired_stats.py) | Paired bootstrap intervals for the prior comparisons of the T2V-1K run | seconds |
 | [`t2v_colab_publish_to_github.py`](t2v_colab_publish_to_github.py) | Copies the run's results from Google Drive to this repository and its release | minutes |
 
+[`experiments/`](experiments/) holds the upgrade tests run after T2V-1K, with their results.
+
 [`cifar100_dev/`](cifar100_dev/) holds the cells of the CIFAR-100 development runs described in the
 README's development log (ResNet-20 zoo, generator versions v4 to v7, sampling sweep, diagnostics),
 plus a Kaggle script.

@@ -1,10 +1,14 @@
-"""TokenFactory agent step: a visual questionnaire for every class.
+"""A tried TokenFactory step, not used by the product: a visual questionnaire for every class.
 
-For each class the agent scores a fixed list of visual attributes (colour, texture, shape, parts, scene,
-kind) from 0 (never) to 3 (always), as they appear in a small photo. The attribute vector is a second,
-structured condition next to the CLIP text embedding: the row map (t2v.rowmap) learns from photos of the
-seen classes how to turn it into classifier rows, so for a never-seen class the agent's answers become
-its classifier directly (attribute-based zero-shot learning, Lampert et al., 2009).
+For each class the agent scores a fixed list of 60 visual attributes (colour, texture, shape, parts, scene,
+kind) from 0 (never) to 3 (always), as they appear in a small photo; the answers for all 1,000 ImageNet
+classes are in data/attributes_imagenet.json. They were tested as a structured condition for classifier rows
+next to the CLIP text embedding (attribute-based zero-shot learning, Lampert et al., 2009), in a text-to-row
+map trained on photos of the seen classes (notebooks/experiments/T2V_rowmap_upgrade.ipynb):
+
+    attributes alone      52.6%  (10-way, seen classes treated as new; chance 10%)
+    text                  64.5%
+    text + attributes     64.5%  -> no gain over the TokenFactory descriptions, so not shipped
 
     python -m t2v.attributes --out data/attributes_imagenet.json
 """

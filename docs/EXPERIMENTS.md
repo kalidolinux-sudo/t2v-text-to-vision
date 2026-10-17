@@ -239,9 +239,38 @@ the average gain small on these deliberately rare names. Everyday names map clea
 "sneakers" → running shoe, "kitties" → tabby; "dogs" correctly stays a new class). The contrastive lines are
 averaged with five generic descriptions and the prompt templates, so they barely move the condition.
 
+## Upgrades tested on 17 October 2026
+
+The diagnostics point at the classifier rows of new classes (59.1% with predicted rows, 71.6% with fine-tuned
+rows on the same generated body). `notebooks/experiments/T2V_rowmap_upgrade.ipynb` replaced the ridge map from
+class text to rows (fitted to 897 zoo-mean rows) with the same linear map trained on photos of the seen classes
+(episodic 10-way cross-entropy under the generated body, initialised at the ridge map and pulled towards it).
+Its inputs: the CLIP condition built from the TokenFactory descriptions, and a new 60-attribute visual
+questionnaire that TokenFactory answered for all 1,000 classes (`t2v/attributes.py`, about 100 calls). Settings
+were chosen by 5-fold cross-validation over seen classes treated as new (photos 300–349 of each class, never used
+by the zoo); the official test tasks were scored once ([log](../results/upgrade_tests/rowmap_attributes.txt)).
+
+| | Seen | Half new | All new | All new, hard |
+|---|---|---|---|---|
+| Shipped T2V-1K | 69.9% | 64.1% | 63.6% | 47.5% |
+| Photo-trained row map + TokenFactory analogies | 69.9% | **66.4%** | 64.4% | 45.6% |
+| Difference (wins / losses over 100 tasks) | 0.0 | +2.3 (83 / 11) | +0.8 (56 / 43) | −1.9 (31 / 66) |
+
+- Cross-validation promised +5.0 points (59.4% → 64.5%); the test tasks gave much less, and the hard split
+  lost. The body was trained on the seen classes only, so a row map trained on its features of seen classes
+  transfers well to close relatives and worse to classes far from all of them. The body, not the rows, is
+  now the limit.
+- The TokenFactory descriptions are worth +1.6 points inside the map (62.8% → 64.4% in cross-validation).
+- The 60 TokenFactory attributes carry real information (52.6% on their own, chance 10%) but add nothing on
+  top of the descriptions (64.5% vs 64.5%).
+- Not shipped: the gain is small, mixed across splits, and negative where it matters most.
+
 ## What did not work, in one place
 
 - Contrastive agent descriptions for look-alike classes in a request (+0.03 ± 0.07 points; not shipped).
+- A text → row map trained on photos of the seen classes (+2.3 / +0.8 / −1.9 points on half new / all new /
+  hard; not shipped), and a 60-attribute TokenFactory questionnaire as its extra input (no gain over the
+  descriptions).
 - ε-prediction (diverged; replaced by x₀-prediction).
 - Per-tensor weight normalisation for ResNet-20 (chance accuracy; replaced by element normalisation).
 - Uniform token sampling (identical classifier rows; replaced by head weighting).
