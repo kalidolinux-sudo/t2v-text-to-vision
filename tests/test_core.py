@@ -99,3 +99,32 @@ def test_ground_exact_name_wins_over_case(monkeypatch):
     monkeypatch.delenv("TOKENFACTORY_API_KEY", raising=False)
     vocab = ["Cardigan", "cardigan", "tabby"]  # ImageNet has both: the corgi and the sweater
     assert ground(["Cardigan", "cardigan", "TABBY"], vocab) == {"Cardigan": "Cardigan", "cardigan": "cardigan", "TABBY": "tabby"}
+
+
+def test_tina_joint_transformer():
+    spec, flat = zoo()
+    tok = ParamTokenizer(spec, 256, ParamTokenizer.compute_stats(flat, spec, "element"), target.MAX_CLASSES)
+    gen = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, 256, clip_dim=16, d_model=32, heads=4,
+                       denoiser="mlp", mlp_hidden=64, joint_layers=2, clip=3.0, valid=tok.valid, joint_arch="tina")
+    K = target.MAX_CLASSES
+    emb = torch.nn.functional.normalize(torch.randn(len(flat), K, 16), dim=-1)
+    mask = torch.ones(len(flat), K, dtype=torch.bool)
+    mask[0, 5:] = False
+    row_valid = torch.ones(len(flat), tok.num_tokens, dtype=torch.bool)
+    loss = gen.loss(tok.encode(flat), tok.valid, emb, mask, row_valid, head_weight=10.0)
+    assert torch.isfinite(loss)
+    loss.backward()
+    assert gen.joint_slot.grad is not None and gen.joint_blocks[0].qkv.weight.grad is not None
+    with torch.no_grad():
+        tokens = gen.sample(emb[:2], mask[:2], steps=3, body_noise=0.0)
+    assert tokens.shape == (2, tok.num_tokens, 256) and torch.isfinite(tokens).all()
+
+
+def test_decoder_checkpoints_still_load():
+    spec, flat = zoo()
+    tok = ParamTokenizer(spec, 256, ParamTokenizer.compute_stats(flat, spec, "element"), target.MAX_CLASSES)
+    old = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, 256, clip_dim=16, d_model=32, heads=4,
+                       denoiser="mlp", mlp_hidden=64, joint_layers=1, clip=3.0, valid=tok.valid)
+    cfg = {k: v for k, v in old.config.items() if k != "joint_arch"}  # as saved by T2V-1K
+    new = T2VGenerator(tok.layer_ids, tok.intra_ids, tok.slots, valid=tok.valid, **cfg)
+    new.load_state_dict(old.state_dict(), strict=True)

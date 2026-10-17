@@ -5,6 +5,11 @@
       --recurrent backbone (LSTM / GRU / Transformer / Mamba)--> one prototype per parameter token
   every token is then denoised independently by a small 1-D conv U-Net conditioned on its prototype,
   so memory grows with the number of tokens processed per step, not with the model size.
+
+The joint transformer (joint_layers > 0) lets the noisy tokens of one network attend to each other at every
+denoising step. joint_arch="tina" follows Tina (Li et al., 2025) and G.pt: one GPT-2 transformer over the
+sequence [timestep token, class tokens in task order, parameter tokens]. joint_arch="decoder" is the
+original PyTorch TransformerDecoder (time added to the input, cross-attention to the classes; T2V-1K).
 """
 import math
 
@@ -143,6 +148,23 @@ class MLPDenoiser(nn.Module):
         return self.out(h)
 
 
+class GPTBlock(nn.Module):
+    """GPT-2 block (pre-LayerNorm self-attention + GELU MLP), the transformer of Tina and G.pt. Not causal:
+    every token of the network being denoised sees every other token."""
+
+    def __init__(self, d, heads):
+        super().__init__()
+        self.heads = heads
+        self.ln1, self.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        self.qkv, self.proj = nn.Linear(d, 3 * d), nn.Linear(d, d)
+        self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(approximate="tanh"), nn.Linear(4 * d, d))
+
+    def forward(self, x):
+        q, k, v = self.qkv(self.ln1(x)).unflatten(-1, (3, self.heads, -1)).permute(2, 0, 3, 1, 4)
+        x = x + self.proj(F.scaled_dot_product_attention(q, k, v).transpose(1, 2).flatten(-2))
+        return x + self.mlp(self.ln2(x))
+
+
 def cosine_alpha_bar(steps, s=0.008):
     t = torch.linspace(0, steps, steps + 1, dtype=torch.float64)
     f = torch.cos((t / steps + s) / (1 + s) * math.pi / 2) ** 2
@@ -155,13 +177,13 @@ class T2VGenerator(nn.Module):
     def __init__(self, layer_ids, intra_ids, slots, token_size, clip_dim=512, d_model=512, backbone="lstm",
                  backbone_layers=2, cond_layers=2, heads=8, channels=(64, 128, 256), diffusion_steps=1000,
                  denoiser="conv", mlp_hidden=512, mlp_depth=3, pred="x0", clip=None, joint_layers=0,
-                 valid=None):
+                 valid=None, joint_arch="decoder"):
         super().__init__()
         self.config = dict(token_size=token_size, clip_dim=clip_dim, d_model=d_model, backbone=backbone,
                            backbone_layers=backbone_layers, cond_layers=cond_layers, heads=heads,
                            channels=tuple(channels), diffusion_steps=diffusion_steps, denoiser=denoiser,
                            mlp_hidden=mlp_hidden, mlp_depth=mlp_depth, pred=pred, clip=clip,
-                           joint_layers=joint_layers)
+                           joint_layers=joint_layers, joint_arch=joint_arch)
         self.register_buffer("slots", slots.clone(), persistent=False)
         half = d_model // 2
         self.register_buffer("pos", torch.cat([sincos(layer_ids, half), sincos(intra_ids, half)], -1), persistent=False)
@@ -185,9 +207,17 @@ class T2VGenerator(nn.Module):
             self.register_buffer("valid", valid.clone(), persistent=False)
             self.joint_in = nn.Linear(token_size, d_model)
             self.joint_time = nn.Sequential(nn.Linear(d_model, d_model), nn.SiLU(), nn.Linear(d_model, d_model))
-            layer = nn.TransformerDecoderLayer(d_model, heads, 4 * d_model, dropout=0.0, batch_first=True,
-                                               norm_first=True)
-            self.joint = nn.TransformerDecoder(layer, joint_layers)  # self-attention over tokens + cross-attention to classes
+            if joint_arch == "tina":
+                # class tokens carry their slot (task order), as Tina encodes the ordered class list
+                self.joint_slot = nn.Parameter(torch.zeros(int(slots.max()) + 1, d_model))
+                self.joint_blocks = nn.ModuleList([GPTBlock(d_model, heads) for _ in range(joint_layers)])
+                self.joint_ln = nn.LayerNorm(d_model)
+            elif joint_arch == "decoder":
+                layer = nn.TransformerDecoderLayer(d_model, heads, 4 * d_model, dropout=0.0, batch_first=True,
+                                                   norm_first=True)
+                self.joint = nn.TransformerDecoder(layer, joint_layers)  # self-attention over tokens + cross-attention to classes
+            else:
+                raise ValueError(joint_arch)
             self.joint_out = nn.Linear(d_model, d_model)
             nn.init.zeros_(self.joint_out.weight)
             nn.init.zeros_(self.joint_out.bias)
@@ -206,8 +236,15 @@ class T2VGenerator(nn.Module):
     def context(self, x_t, step, proto, classes):
         """Joint mode: refine prototypes with the current noisy tokens of the whole network.
         x_t (B,T,D), step (B,), proto (B,T,d), classes (B,K,d) -> (B,T,d)."""
-        h = self.joint_in(x_t * self.valid) + proto + self.joint_time(sincos(step, self.config["d_model"]))[:, None]
-        return proto + self.joint_out(self.joint(h, classes))
+        t_emb = self.joint_time(sincos(step, self.config["d_model"]))
+        if self.config.get("joint_arch", "decoder") == "decoder":
+            h = self.joint_in(x_t * self.valid) + proto + t_emb[:, None]
+            return proto + self.joint_out(self.joint(h, classes))
+        K = classes.shape[1]
+        z = torch.cat([t_emb[:, None], classes + self.joint_slot[:K], self.joint_in(x_t * self.valid) + proto], 1)
+        for block in self.joint_blocks:
+            z = block(z)
+        return proto + self.joint_out(self.joint_ln(z[:, 1 + K:]))
 
     def loss(self, x0, valid, emb, cls_mask, row_valid, tokens_per_step=None, min_snr=0.0, head_weight=1.0):
         """x0 (B,T,D) normalised tokens, valid (T,D), row_valid (B,T) -> denoising MSE.

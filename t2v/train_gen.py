@@ -82,6 +82,9 @@ def main():
     p.add_argument("--fp16", action="store_true", help="fp16 autocast + loss scaling (for T4/V100-class GPUs)")
     p.add_argument("--joint_layers", type=int, default=0,
                    help="hybrid mode: Tina/G.pt-style transformer layers over all noisy tokens (0 = pure RPG)")
+    p.add_argument("--joint_arch", default="decoder", choices=["decoder", "tina"],
+                   help="joint transformer: tina = one GPT-2 transformer over [time, classes, parameter tokens] "
+                        "(Tina / G.pt); decoder = T2V-1K's cross-attention decoder")
     p.add_argument("--head_weight", type=float, default=1.0,
                    help="loss weight of classifier-row tokens (they are also always included in each step)")
     p.add_argument("--min_snr", type=float, default=0.0, help="Min-SNR-gamma loss weighting, e.g. 5; 0 = off")
@@ -139,7 +142,7 @@ def main():
                        a.backbone, a.backbone_layers, a.cond_layers,
                        channels=[int(c) for c in a.channels.split(",")], denoiser=a.denoiser,
                        mlp_hidden=a.mlp_hidden, mlp_depth=a.mlp_depth, pred=a.pred, clip=round(clip, 3),
-                       joint_layers=a.joint_layers, valid=tok.valid).to(dev)
+                       joint_layers=a.joint_layers, valid=tok.valid, joint_arch=a.joint_arch).to(dev)
     n_gen = sum(p.numel() for p in gen.parameters())
     print(f"tokens per model: {tok.num_tokens} x {a.token_size}; generator: {n_gen / 1e6:.1f}M params")
 

@@ -50,7 +50,7 @@ def main():
     parts = {"class encoder": gen.cond, "position + prototype layers": [gen.pos_proj, gen.xattn, gen.xnorm, gen.proto_out],
              "recurrent backbone": gen.backbone, "per-token denoiser": gen.denoiser}
     if gen.config.get("joint_layers", 0):
-        parts["joint transformer"] = [gen.joint_in, gen.joint_time, gen.joint, gen.joint_out]
+        parts["joint transformer"] = [m for n, m in gen.named_children() if n.startswith("joint")]
     total = count(gen)
     print(f"{'component':30s} {'params':>12s} {'share':>7s}")
     for name, mods in parts.items():
