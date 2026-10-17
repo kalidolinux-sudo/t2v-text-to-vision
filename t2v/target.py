@@ -72,8 +72,19 @@ ARCHS = {
     "clip_zs": lambda k: ClipHead(k),                                     # same, generated as a residual on CLIP zero-shot
     "tina_cnn": lambda k: TinaCNN(k),                                     # ~5.4K params
     "resnet20": lambda k: ResNet((16, 32, 64), (3, 3, 3), k),             # ~0.27M params
+    "resnet20w2": lambda k: ResNet((32, 64, 128), (3, 3, 3), k),          # ~1.09M params, twice as wide
     "resnet18": lambda k: ResNet((64, 128, 256, 512), (2, 2, 2, 2), k),   # ~11M params
 }
+
+
+def penultimate(model, x):
+    """Pooled features before the classifier (ResNet / TinaCNN), for feature distillation."""
+    if isinstance(model, ResNet):
+        return model.layers(F.relu(model.bn1(model.conv1(x)))).mean((2, 3))
+    if isinstance(model, TinaCNN):
+        x = F.max_pool2d(F.relu(model.conv1(x)), 2)
+        return F.max_pool2d(F.relu(model.conv2(x)), 2).mean((2, 3))
+    return x
 
 
 def uses_features(arch):

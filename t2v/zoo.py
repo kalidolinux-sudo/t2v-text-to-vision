@@ -11,6 +11,10 @@ Two choices make the body carry task information instead of fine-tuning noise:
                       (valid because all runs start from the same generic model; Wortsman et al. 2022),
                       which cancels seed noise and leaves the task-specific part
 
+`generic --clip_distill W` also pulls the generic model's pooled features, through a linear projection,
+towards CLIP ViT-B/32's embedding of the same image (feature distillation), so the body learns features
+that are organised like CLIP's and transfer to classes it never saw.
+
 Shards let several processes share one GPU:
     for s in 0 1 2 3; do python -m t2v.zoo pmodels --shard $s --num_shards 4 & done
 """
@@ -68,6 +72,73 @@ def train(model, x_u8, y, epochs, lr, bs, k=None, wd=5e-4, amp=False):
     return model
 
 
+def train_distill(model, proj, x_u8, y, targets, epochs, lr, bs, wd=5e-4, amp=False, weight=1.0, log=None):
+    """`train` plus feature distillation: cross-entropy on the labels + weight * (1 - cosine) between
+    proj(pooled features) and the CLIP image embedding of the same image (targets, (N, 512), unit norm)."""
+    amp = amp and y.device.type == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=amp)
+    params = list(model.parameters()) + list(proj.parameters())
+    opt = torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=wd, nesterov=True)
+    steps_per_epoch = math.ceil(len(y) / bs)
+    total = max(1, epochs * steps_per_epoch)
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: 0.5 * (1 + math.cos(math.pi * s / total)))
+    model.train(); proj.train()
+    for ep in range(epochs):
+        perm = torch.randperm(len(y), device=y.device)
+        ce_sum = cos_sum = 0.0
+        for i in range(0, len(y), bs):
+            idx = perm[i:i + bs]
+            with torch.autocast("cuda", dtype=torch.float16, enabled=amp):
+                f = target.penultimate(model, prep(x_u8[idx], train=True))
+                ce = F.cross_entropy(model.fc(f).float(), y[idx])
+                cos = F.cosine_similarity(proj(f).float(), targets[idx].float(), dim=-1).mean()
+                loss = ce + weight * (1 - cos)
+            opt.zero_grad(set_to_none=True)
+            scaler.scale(loss).backward()
+            scaler.step(opt)
+            scaler.update()
+            sched.step()
+            ce_sum += ce.item() if i % (bs * 50) == 0 else 0
+            cos_sum += cos.item() if i % (bs * 50) == 0 else 0
+        if log:
+            n = math.ceil(steps_per_epoch / 50)
+            log(f"  epoch {ep + 1}/{epochs}  ce {ce_sum / n:.3f}  cosine to CLIP {cos_sum / n:.3f}")
+    model.eval(); proj.eval()
+    return model
+
+
+@torch.no_grad()
+def clip_targets(x_u8, device, bs=1024):
+    """CLIP ViT-B/32 image embeddings (unit norm, fp16) of uint8 32x32 images, upsampled to 224."""
+    from .features import clip_pixels
+    from .text_embed import _load
+    model, _ = _load(device)
+    out = []
+    for i in range(0, len(x_u8), bs):
+        with torch.autocast("cuda", dtype=torch.float16, enabled=device.startswith("cuda")):
+            f = model.get_image_features(pixel_values=clip_pixels(x_u8[i:i + bs].to(device)))
+        if not torch.is_tensor(f):
+            f = f.pooler_output if getattr(f, "pooler_output", None) is not None else f[0]
+        out.append(F.normalize(f.float(), dim=-1).half())
+        if (i // bs) % 200 == 0:
+            print(f"  CLIP targets {i + len(f)}/{len(x_u8)}", flush=True)
+    return torch.cat(out)
+
+
+@torch.no_grad()
+def zero_shot_tasks(model, proj, data, classes, text_emb, n_tasks=100, k=10, seed=0):
+    """Mean 10-way accuracy on test photos when the classifier is CLIP's text embeddings of the class names
+    applied to proj(features): how well the distilled body transfers to classes it never trained on."""
+    rng = random.Random(seed)
+    accs = []
+    for _ in range(n_tasks):
+        cls = rng.sample(classes, k)
+        x, y = data.subset(cls, train=False)
+        f = F.normalize(proj(target.penultimate(model, prep(x))).float(), dim=-1)
+        accs.append(((f @ text_emb[cls].T).argmax(1) == y).float().mean().item())
+    return sum(accs) / len(accs)
+
+
 @torch.no_grad()
 def accuracy(model, x_u8, y, k=None, bs=2000):
     model.eval()
@@ -112,12 +183,36 @@ def cmd_generic(a):
     x, y = data.subset(seen)
     y = torch.tensor(seen, device=dev)[y]  # keep the original class ids for the n_cls-way head
     model = target.build(a.arch, n_cls).to(dev)
+    torch.backends.cudnn.benchmark = True
+    os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
-    train(model, x, y, a.epochs, a.lr, a.bs, wd=a.wd, amp=a.amp)
+    proj, zs = None, {}
+    if a.clip_distill > 0:
+        cache = os.path.join(a.out, f"clip_targets_{len(y)}.pt")
+        if os.path.exists(cache):
+            targets = torch.load(cache, map_location=dev)
+        else:
+            targets = clip_targets(x, dev)
+            torch.save(targets.cpu(), cache)
+        print(f"CLIP targets for {len(targets)} training images ({time.time() - t0:.0f}s)", flush=True)
+        feat = model.fc.in_features
+        proj = nn.Linear(feat, targets.shape[1]).to(dev)
+        train_distill(model, proj, x, y, targets.to(dev), a.epochs, a.lr, a.bs, wd=a.wd, amp=a.amp,
+                      weight=a.clip_distill, log=lambda s: print(s, flush=True))
+        from .text_embed import embed_names
+        descs = json.load(open(a.descriptions)) if a.descriptions and os.path.exists(a.descriptions) else None
+        temb = embed_names(data.names, dev, ensemble=True, descriptions=descs)
+        zs = {"zero_shot_seen": zero_shot_tasks(model, proj, data, seen, temb),
+              "zero_shot_new": zero_shot_tasks(model, proj, data, hold_rand, temb),
+              "zero_shot_new_hard": zero_shot_tasks(model, proj, data, hold_hard, temb)}
+        print("distilled body, CLIP-text classifier on 100 tasks of 10 classes: "
+              + "  ".join(f"{k} {v:.3f}" for k, v in zs.items()), flush=True)
+    else:
+        train(model, x, y, a.epochs, a.lr, a.bs, wd=a.wd, amp=a.amp)
     xt, yt = data.subset(seen, train=False)
     acc = accuracy(model, xt, torch.tensor(seen, device=dev)[yt])
-    os.makedirs(a.out, exist_ok=True)
-    torch.save({"arch": a.arch, "state": model.state_dict()}, os.path.join(a.out, "generic.pt"))
+    torch.save({"arch": a.arch, "state": model.state_dict(), "proj": proj.state_dict() if proj else None,
+                "clip_distill": a.clip_distill, **zs}, os.path.join(a.out, "generic.pt"))
     meta = {"arch": a.arch, "dataset": a.dataset, "per_class": a.per_class, "names": data.names, "coarse": coarse,
             "seen": seen, "holdout": sorted(hold_rand + hold_hard), "holdout_random": hold_rand,
             "holdout_hard": hold_hard, "max_classes": target.MAX_CLASSES,
@@ -175,6 +270,9 @@ def cmd_pmodels(a):
     dev = pick_device(a.device)
     with open(os.path.join(a.out, "meta.json")) as f:
         meta = json.load(f)
+    if a.per_class:  # fine-tune on fewer images per class than the generic model saw (a cached subset)
+        meta = {**meta, "per_class": a.per_class}
+    torch.backends.cudnn.benchmark = True
     g = torch.load(os.path.join(a.out, "generic.pt"), map_location=dev)
     arch, K = g["arch"], meta["max_classes"]
     data = dataset_from_meta(meta, a.data, dev, features=target.uses_features(arch))
@@ -281,6 +379,9 @@ def main():
     g.add_argument("--epochs", type=int, default=50)
     g.add_argument("--lr", type=float, default=0.1)
     g.add_argument("--wd", type=float, default=5e-4)
+    g.add_argument("--clip_distill", type=float, default=0.0,
+                   help="weight of feature distillation towards CLIP image embeddings (0 = off; e.g. 2.0)")
+    g.add_argument("--descriptions", help="TokenFactory descriptions, for the zero-shot check of the distilled body")
     m = sub.choices["pmodels"]
     m.add_argument("--split", default="train", choices=SPLITS)
     m.add_argument("--n", type=int, default=1000, help="number of tasks for this split")
@@ -296,6 +397,7 @@ def main():
     m.add_argument("--shard", type=int, default=0)
     m.add_argument("--num_shards", type=int, default=1)
     m.add_argument("--save_every", type=int, default=25)
+    m.add_argument("--per_class", type=int, default=0, help="training images per class (0 = as the generic model)")
     z = sub.choices["analyze"]
     z.add_argument("--soup", type=int, default=2)
     a = p.parse_args()

@@ -67,6 +67,21 @@ def _load_imagenet(split, cache_dir, per_class):
     path = os.path.join(cache_dir, f"imagenet32_{tag}.pt")
     if os.path.exists(path):
         return torch.load(path)
+    if split == "train":  # a larger cached download holds the first `per_class` images of every class too
+        import glob
+        sizes = sorted(int(os.path.basename(f)[len("imagenet32_train"):-3]) for f in glob.glob(os.path.join(cache_dir, "imagenet32_train*.pt"))
+                       if os.path.basename(f)[len("imagenet32_train"):-3].isdigit())
+        bigger = [n for n in sizes if n > per_class]
+        if bigger:
+            big = torch.load(os.path.join(cache_dir, f"imagenet32_train{bigger[0]}.pt"))
+            y = big["y"]
+            order = torch.argsort(y, stable=True)
+            first = torch.zeros(len(y), dtype=torch.long)
+            counts = torch.bincount(y, minlength=1000)
+            starts = torch.cumsum(counts, 0) - counts
+            first[order] = torch.arange(len(y)) - starts[y[order]]   # rank of each image within its class
+            keep = first < per_class
+            return {"x": big["x"][keep], "y": y[keep], "names": big["names"]}
     from huggingface_hub import hf_hub_download
     import pyarrow.parquet as pq
 
